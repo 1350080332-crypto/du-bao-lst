@@ -1,0 +1,2605 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hệ thống giám sát nhiệt độ bề mặt – lớp phủ thực vật – mức độ khô hạn tại TP.HCM (bản xem trực tuyến)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  /* ===== NỀN NHẸ NHÀNG: tông trắng ngà – xanh lá nhạt ===== */
+  :root {
+    --nen:#f4f7f3; --the:#ffffff; --chu:#1f2d2a; --phu:#66756f; --vien:#dfe7e1; --mo:#eef3ef;
+    --chinh:#2f7d6d; --chinh-dam:#256657; --troi:#3b82a6; --nhan:#e3f0ea;
+    --ht:#3b6fc4; --db:#e0823a; --gl:#c25a8a; --tot:#2f9e5b; --loi:#c2410c;
+    --pho:linear-gradient(90deg,#2c4a9a,#3b82c4,#3fb8c4,#5cbf6a,#f2d24b,#ef8a3c,#d64b3b);
+    --bong:0 1px 2px rgba(31,45,42,.05), 0 6px 18px -10px rgba(31,45,42,.18);
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font-family:"Be Vietnam Pro", "Segoe UI", Roboto, Arial, sans-serif; font-size:13.5px; color:var(--chu); background:var(--nen);
+         display:flex; flex-direction:column; overflow:hidden; }
+  button, input, select { font-family:inherit; }
+  :focus-visible { outline:2px solid var(--troi); outline-offset:2px; }
+
+  /* ---------- đầu trang (gọn để bản đồ được nhiều chỗ) ---------- */
+  header { background:var(--the); border-bottom:1px solid var(--vien); display:flex; align-items:center; gap:12px; padding:8px 16px; flex:none; }
+  .logo { width:36px; height:36px; border-radius:11px; background:var(--nhan); display:grid; place-items:center; flex:none; }
+  header h1 { margin:0; font-size:15.5px; font-weight:700; letter-spacing:-.01em; line-height:1.25; }
+  header .phu { font-size:12px; color:var(--phu); margin-top:1px; }
+  .dau-phai { margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .gee-tt { font-size:12px; padding:5px 11px; border-radius:999px; background:var(--mo); color:var(--phu); white-space:nowrap; display:flex; align-items:center; gap:7px; }
+  .gee-tt i { width:8px; height:8px; border-radius:50%; background:#e5b93a; display:block; }
+  .gee-tt.ok i { background:#3fb36b; box-shadow:0 0 0 3px rgba(63,179,107,.2); }
+  .nguoi { position:relative; }
+  .nguoi > button { display:flex; align-items:center; gap:8px; border:1px solid var(--vien); background:#fff; padding:4px 10px 4px 4px; border-radius:999px; cursor:pointer; font-size:12.5px; color:var(--chu); }
+  .nguoi > button i { width:26px; height:26px; border-radius:50%; background:var(--chinh); color:#fff; display:grid; place-items:center; font-style:normal; font-weight:700; font-size:12px; }
+  .nguoi > button small { display:block; color:var(--phu); font-size:11px; line-height:1.1; text-align:left; }
+  .menu { position:absolute; right:0; top:calc(100% + 6px); background:#fff; border:1px solid var(--vien); border-radius:12px; box-shadow:var(--bong); min-width:200px; padding:6px; display:none; z-index:4000; }
+  .menu.bat { display:block; }
+  .menu button, .menu a { display:block; width:100%; text-align:left; border:0; background:none; padding:8px 10px; border-radius:8px; font-size:13px; cursor:pointer; color:var(--chu); text-decoration:none; }
+  .menu button:hover, .menu a:hover { background:var(--mo); }
+  nav { display:flex; gap:4px; padding:6px 16px; background:var(--the); border-bottom:1px solid var(--vien); overflow-x:auto; flex:none; }
+  nav button, nav a { border:0; background:transparent; padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; color:var(--phu); cursor:pointer; white-space:nowrap; text-decoration:none; display:flex; align-items:center; gap:7px; }
+  nav button:hover, nav a:hover { background:var(--mo); color:var(--chu); }
+  nav button.bat { background:var(--nhan); color:var(--chinh-dam); }
+  nav .dem { font-size:11px; background:var(--mo); color:var(--phu); padding:1px 7px; border-radius:999px; }
+  nav a { margin-left:auto; border:1px solid var(--vien); }
+  nav .khoa { font-size:10.5px; color:var(--chinh); background:var(--nhan); border-radius:6px; padding:1px 6px; }
+  body:not(.la-admin) .chi-admin { display:none !important; }
+
+  .trang { display:none; flex:1; min-height:0; }
+  .trang.bat { display:block; }
+  .cuon { height:100%; overflow:auto; padding:20px; }
+  .rong { max-width:1280px; margin:0 auto; }
+
+  /* ---------- chung ---------- */
+  .khoi { margin-bottom:16px; }
+  .nhan { display:block; font-size:12px; font-weight:600; color:var(--phu); margin-bottom:6px; text-transform:none; }
+  .nut-nhom { display:flex; gap:4px; background:var(--mo); padding:3px; border-radius:10px; }
+  .nut-nhom button { flex:1; padding:6px 4px; border:0; background:transparent; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:500; color:var(--chu); }
+  .nut-nhom button.bat { background:var(--the); box-shadow:var(--bong); font-weight:700; color:var(--chinh-dam); }
+  #nhom-loai button.bat[data-loai=HIEN_TRANG] { color:var(--ht); }
+  #nhom-loai button.bat[data-loai=DU_BAO] { color:var(--db); }
+  #nhom-loai button.bat[data-loai=GIA_LAP] { color:var(--gl); }
+  #nhom-tan-suat button { line-height:1.2; } #nhom-tan-suat small { font-weight:500; font-size:10.5px; color:var(--phu); }
+  .nhan-gl { display:inline-block; background:#fde7d3; color:#9a4a10; border-radius:6px; padding:0 6px; margin-left:6px; font-size:11px; font-weight:700; }
+  .nut-nhom button:disabled { opacity:.35; cursor:not-allowed; }
+  select, input[type=text], input[type=password], input[type=date], input[type=number], input[type=search] { width:100%; padding:8px 10px; border:1px solid var(--vien); border-radius:9px; background:#fff; font-size:13px; color:var(--chu); }
+  input[type=range] { width:100%; accent-color:var(--chinh); }
+  .hang { display:flex; align-items:center; gap:8px; }
+  .nut-tron { width:36px; height:36px; flex:none; border:0; border-radius:50%; background:var(--chinh); color:#fff; cursor:pointer; font-size:13px; display:grid; place-items:center; }
+  .nut-tron:hover { background:var(--chinh-dam); }
+  .ky-lon { font-size:21px; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; }
+  .ky-lon small { display:block; font-size:11.5px; font-weight:500; color:var(--phu); letter-spacing:0; margin-top:1px; }
+  .the-nho { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .the-nho div { background:var(--mo); border-radius:10px; padding:7px 10px; }
+  .the-nho b { display:block; font-size:14.5px; font-variant-numeric:tabular-nums; }
+  .the-nho span { font-size:11px; color:var(--phu); }
+  .cap { display:grid; grid-template-columns:12px 1fr 52px; gap:6px; align-items:center; margin:4px 0; font-size:12.5px; }
+  .cap i { width:12px; height:12px; border-radius:4px; display:block; }
+  .cap .thanh { height:7px; background:var(--mo); border-radius:4px; overflow:hidden; grid-column:2; }
+  .cap .thanh u { display:block; height:100%; border-radius:4px; }
+  .ghi-chu { font-size:12px; color:var(--phu); line-height:1.5; }
+  .chip { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:600; color:#fff; white-space:nowrap; }
+  .chip.HIEN_TRANG { background:var(--ht); } .chip.DU_BAO { background:var(--db); } .chip.GIA_LAP { background:var(--gl); }
+  .chip.cs { background:var(--mo); color:var(--chu); }
+  .chk { display:flex; align-items:center; gap:8px; font-size:12.5px; margin-top:6px; cursor:pointer; }
+  .chk input { accent-color:var(--chinh); width:15px; height:15px; }
+  .nut { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:8px 14px; border-radius:9px; border:1px solid var(--vien); background:#fff; color:var(--chu); font-size:12.5px; font-weight:600; cursor:pointer; text-decoration:none; white-space:nowrap; }
+  .nut:hover { border-color:var(--chinh); color:var(--chinh-dam); }
+  .nut.chinh { background:var(--chinh); border-color:var(--chinh); color:#fff; }
+  .nut.chinh:hover { background:var(--chinh-dam); color:#fff; }
+  .nut.nho { padding:5px 10px; font-size:12px; border-radius:8px; }
+  .nut.do { color:var(--loi); } .nut.do:hover { border-color:var(--loi); }
+  .nut:disabled { opacity:.5; cursor:not-allowed; }
+  .card { background:var(--the); border:1px solid var(--vien); border-radius:16px; padding:12px 14px; display:flex; flex-direction:column; min-height:0; box-shadow:var(--bong); }
+  .card h3 { margin:0 0 8px; font-size:14px; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .card h3 small { font-weight:500; color:var(--phu); font-size:12px; }
+  .trong { position:absolute; inset:0; display:grid; place-items:center; color:var(--phu); font-size:13px; text-align:center; padding:10px; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th, td { padding:6px 7px; text-align:right; border-bottom:1px solid var(--vien); font-variant-numeric:tabular-nums; }
+  th:first-child, td:first-child { text-align:left; }
+  th { color:var(--phu); font-weight:600; position:sticky; top:0; background:#fff; z-index:1; }
+  tr.tot td { background:#edf8f1; font-weight:600; }
+  .leaflet-container { font-family:inherit; }
+
+  /* ================= TRANG BẢN ĐỒ – BẢN ĐỒ LÀ THÀNH PHẦN CHỦ ĐẠO ================= */
+  .bd-app { display:grid; grid-template-columns:292px minmax(0,1fr) 380px; height:100%; min-height:0; }
+  .bd-app.an-phai { grid-template-columns:292px minmax(0,1fr) 0; }
+  .bd-app.an-trai { grid-template-columns:0 minmax(0,1fr) 380px; }
+  .bd-app.an-trai.an-phai { grid-template-columns:0 minmax(0,1fr) 0; }
+  .bd-trai { background:var(--the); border-right:1px solid var(--vien); overflow-y:auto; padding:14px 14px 24px; min-width:0; }
+  .an-trai .bd-trai { padding:0; border:0; overflow:hidden; }
+  .bd-giua { position:relative; min-width:0; min-height:0; }
+  #map { position:absolute; inset:0; background:#eef2ee; }
+  .bd-phai { background:var(--the); border-left:1px solid var(--vien); display:flex; flex-direction:column; min-width:0; min-height:0; }
+  .an-phai .bd-phai { border:0; overflow:hidden; }
+  .tieu-de-nhom { font-size:11.5px; font-weight:700; letter-spacing:.04em; color:var(--chinh-dam); text-transform:uppercase; margin:2px 0 10px; display:flex; align-items:center; gap:8px; }
+  .tieu-de-nhom::after { content:""; flex:1; height:1px; background:var(--vien); }
+  .luoi-2c { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .nguong { display:grid; grid-template-columns:18px 52px 54px 1fr; gap:6px; align-items:center; margin-bottom:6px; font-size:12.5px; }
+  .nguong input[type=checkbox] { accent-color:var(--chinh); width:15px; height:15px; margin:0; }
+  .nguong select, .nguong input[type=number] { padding:5px 6px; font-size:12.5px; }
+  .nguong b { font-size:12.5px; }
+  .ket-loc { font-size:12px; color:var(--chinh-dam); background:var(--nhan); border-radius:8px; padding:6px 9px; margin-top:4px; display:none; }
+
+  /* lớp nổi trên bản đồ */
+  .noi { position:absolute; z-index:5; }
+  .tim-ban-do { top:10px; left:10px; width:min(320px, calc(100% - 330px)); min-width:190px; }
+  .tim-ban-do input { box-shadow:var(--bong); border-radius:11px; padding:9px 12px; border-color:#fff; }
+  .goi-y { background:#fff; border:1px solid var(--vien); border-radius:11px; margin-top:6px; box-shadow:var(--bong); max-height:300px; overflow:auto; display:none; }
+  .goi-y div { padding:7px 12px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; font-size:13px; }
+  .goi-y div:hover, .goi-y div.chon { background:var(--nhan); }
+  .goi-y small { color:var(--phu); }
+  .nhan-ky { top:10px; left:50%; transform:translateX(-50%); background:rgba(255,255,255,.94); border:1px solid var(--vien); border-radius:999px; padding:6px 14px; font-size:12.5px; font-weight:600; box-shadow:var(--bong); white-space:nowrap; pointer-events:none; }
+  .cong-cu { top:10px; right:10px; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+  .hop-noi { background:rgba(255,255,255,.96); border:1px solid var(--vien); border-radius:12px; box-shadow:var(--bong); padding:4px; display:flex; gap:3px; }
+  .hop-noi button { border:0; background:transparent; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--phu); }
+  .hop-noi button.bat { background:var(--chinh); color:#fff; }
+  .hop-noi select { border:0; padding:5px 6px; font-size:12.5px; background:transparent; width:auto; }
+  .chu-giai-noi { left:10px; bottom:28px; background:rgba(255,255,255,.95); border:1px solid var(--vien); border-radius:12px; padding:9px 12px; box-shadow:var(--bong); min-width:240px; }
+  .chu-giai-noi b { font-size:12px; display:block; margin-bottom:5px; }
+  .chu-giai { height:12px; border-radius:6px; }
+  .chu-giai-so { display:flex; justify-content:space-between; font-size:11px; color:var(--phu); margin-top:3px; font-variant-numeric:tabular-nums; }
+  .chu-giai-noi .phu-cg { display:flex; gap:12px; margin-top:6px; font-size:11px; color:var(--phu); }
+  .chu-giai-noi .phu-cg i { display:inline-block; width:12px; height:9px; border-radius:2px; vertical-align:-1px; margin-right:4px; }
+  .dang-tai { top:52px; left:50%; transform:translateX(-50%); background:rgba(31,45,42,.85); color:#fff; padding:6px 14px; border-radius:999px; font-size:12px; display:none; }
+  .nut-gap { top:50%; transform:translateY(-50%); width:18px; height:54px; border:1px solid var(--vien); background:#fff; cursor:pointer; color:var(--phu); font-size:11px; padding:0; box-shadow:var(--bong); }
+  .nut-gap.trai { left:0; border-radius:0 8px 8px 0; border-left:0; }
+  .nut-gap.phai { right:0; border-radius:8px 0 0 8px; border-right:0; }
+  .the-tt { right:10px; bottom:28px; width:min(440px, calc(100% - 290px)); background:rgba(255,255,255,.98); border:1px solid var(--vien); border-radius:14px; box-shadow:var(--bong); padding:10px 12px; display:none; }
+  .the-tt h4 { margin:0; font-size:14px; display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+  .the-tt h4 small { display:block; font-weight:500; color:var(--phu); font-size:11.5px; margin-top:2px; }
+  .the-tt .x { border:0; background:var(--mo); width:26px; height:26px; border-radius:50%; cursor:pointer; flex:none; }
+  .the-tt .ba { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:8px 0; }
+  .the-tt .ba div { background:var(--mo); border-radius:9px; padding:6px 8px; font-size:11px; color:var(--phu); }
+  .the-tt .ba b { display:block; font-size:14px; color:var(--chu); font-variant-numeric:tabular-nums; }
+  .the-tt .bd { height:150px; position:relative; }
+  .maplibregl-popup-content { font-family:inherit; font-size:12.5px; border-radius:10px; padding:8px 11px; box-shadow:var(--bong); }
+  .maplibregl-ctrl-attrib { font-size:10px; }
+  .maplibregl-ctrl-scale { border-color:#5b6b66; color:#33413d; font-size:10.5px; }
+  .la-ban-noi { right:10px; bottom:120px; }
+
+  /* danh sách phường */
+  .ds-dau { padding:12px 14px 8px; border-bottom:1px solid var(--vien); }
+  .ds-dau h3 { margin:0; font-size:14.5px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .ds-dau .ghi-chu { margin-top:2px; }
+  .tab-xh { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin-top:10px; background:var(--mo); padding:3px; border-radius:10px; }
+  .tab-xh button { border:0; background:transparent; padding:6px 2px; border-radius:8px; font-size:11.5px; font-weight:600; color:var(--phu); cursor:pointer; line-height:1.25; }
+  .tab-xh button small { display:block; font-weight:500; font-size:10.5px; }
+  .tab-xh button.bat { background:#fff; color:var(--chinh-dam); box-shadow:var(--bong); }
+  .ds-than { flex:1; min-height:0; overflow:auto; }
+  .ds-than table { font-size:12px; }
+  .ds-than th { font-size:11px; padding:6px 5px; background:#fafcfa; }
+  .ds-than td { padding:5px 5px; cursor:pointer; }
+  .ds-than th:nth-child(2), .ds-than td:nth-child(2) { text-align:left; }
+  .ds-than tr:hover td { background:#f2f8f4; }
+  .ds-than tr.chon td { background:var(--nhan); font-weight:600; }
+  .ds-than tr.loai td { opacity:.38; }
+  .ds-than td.sx { font-weight:700; }
+  .o-mau { display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:5px; vertical-align:0; }
+  .ds-chan { padding:8px 12px; border-top:1px solid var(--vien); display:flex; gap:8px; align-items:center; justify-content:space-between; }
+
+  /* hộp thoại */
+  .phong-to { position:fixed; inset:0; background:rgba(31,45,42,.55); z-index:5000; display:none; place-items:center; padding:20px; }
+  .phong-to.bat { display:grid; }
+  .phong-to .hop { background:#fff; border-radius:16px; max-width:min(1280px,96vw); max-height:94vh; overflow:auto; padding:16px; }
+  .phong-to img { width:100%; height:auto; display:block; }
+  .hop-thoai h3 { margin:0 0 10px; font-size:16px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .hop-thoai .x { border:0; background:var(--mo); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; }
+  .form-tk { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+  .xuat-luoi { display:grid; grid-template-columns:260px minmax(0,1fr); gap:16px; }
+  .xuat-luoi img { border:1px solid var(--vien); border-radius:8px; background:#fff; }
+
+  /* ---------- trang tải ảnh lên & các trang khác (giữ nguyên bố cục cũ, đổi màu nhẹ) ---------- */
+  .tieu-de-trang { margin:0 0 4px; font-size:21px; font-weight:700; letter-spacing:-.02em; }
+  .mo-ta-trang { margin:0 0 18px; color:var(--phu); max-width:75ch; line-height:1.55; }
+  .khung { background:var(--the); border:1px solid var(--vien); border-radius:18px; padding:20px; box-shadow:var(--bong); margin-bottom:18px; }
+  .khung h3 { margin:0 0 12px; font-size:15px; }
+  .tai-len { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:24px; }
+  .tha { border:2px dashed #a9d3c4; border-radius:16px; background:linear-gradient(180deg,#f5fbf8,#f0f6f4); min-height:220px; display:grid; place-items:center; text-align:center; padding:20px; cursor:pointer; transition:border-color .15s, background .15s; }
+  .tha.keo { border-color:var(--chinh); background:#e6f3ee; }
+  .tha b { display:block; font-size:16px; margin:10px 0 4px; }
+  .tha span { color:var(--phu); font-size:12.5px; }
+  .ds-tep { margin-top:12px; display:grid; gap:8px; }
+  .tep { border:1px solid var(--vien); border-radius:12px; padding:10px 12px; background:#fff; }
+  .tep .dau { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .tep .dau b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tep .tt { font-size:12px; color:var(--phu); margin-top:5px; line-height:1.55; }
+  .tep .tt .canh { color:#b45309; }
+  .tep .tt .tot { color:var(--tot); }
+  #ban-do-xem { height:210px; border-radius:12px; margin-top:12px; border:1px solid var(--vien); display:none; }
+  .form { display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; align-content:start; }
+  .form .du { grid-column:1 / -1; }
+  .form label.nhan small { font-weight:400; }
+  .chon-loai { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .chon-loai label { border:1.5px solid var(--vien); border-radius:12px; padding:11px 12px; display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; font-size:13px; }
+  .chon-loai input { accent-color:var(--chinh); }
+  .chon-loai label.bat[data-l=HIEN_TRANG] { border-color:var(--ht); background:#f0f4fc; }
+  .chon-loai label.bat[data-l=DU_BAO] { border-color:var(--db); background:#fdf5ee; }
+  .chon-loai label.bat[data-l=GIA_LAP] { border-color:var(--gl); background:#fbf1f6; }
+  .tien-do { height:8px; background:var(--mo); border-radius:4px; overflow:hidden; margin-top:12px; display:none; }
+  .tien-do u { display:block; height:100%; width:0; background:var(--pho); transition:width .2s; }
+  .trang-thai { margin-top:10px; font-size:13px; }
+  .ket-qua { border-radius:12px; padding:12px 14px; margin-top:10px; background:#eff8f3; border:1px solid #c3e4d1; font-size:13px; line-height:1.55; }
+  .ket-qua.loi { background:#fdf3ee; border-color:#f5cdb8; color:#9a3412; }
+  .buoc { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .buoc div { background:var(--mo); border-radius:14px; padding:12px 14px; font-size:12.5px; line-height:1.5; color:var(--phu); }
+  .buoc b { display:block; color:var(--chu); font-size:13.5px; margin-bottom:3px; }
+  .buoc em { font-style:normal; display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--chinh); color:#fff; font-size:12px; font-weight:700; margin-bottom:6px; }
+  .bang-cuon { overflow:auto; max-height:520px; border:1px solid var(--vien); border-radius:12px; }
+  .bang-cuon th, .bang-cuon td { text-align:left; white-space:nowrap; }
+  .bang-cuon td.so, .bang-cuon th.so { text-align:right; }
+  .loc { display:grid; grid-template-columns:repeat(4, minmax(120px,1fr)) minmax(180px,2fr) auto; gap:10px; align-items:end; margin-bottom:14px; }
+  .kpi { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  .kpi div { background:var(--the); border:1px solid var(--vien); border-radius:16px; padding:14px 16px; box-shadow:var(--bong); }
+  .kpi b { display:block; font-size:22px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .kpi span { color:var(--phu); font-size:12.5px; }
+  .luoi-3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+  .luoi-2 { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:16px; }
+  .phan-trang { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px; font-size:12.5px; color:var(--phu); }
+  .thanh-pv { height:8px; background:var(--mo); border-radius:4px; overflow:hidden; min-width:90px; }
+  .thanh-pv u { display:block; height:100%; background:var(--chinh); border-radius:4px; }
+  .loc-chuoi { grid-template-columns:minmax(200px,1.2fr) minmax(200px,1.6fr) 110px 110px auto; }
+  .ds-duong { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  .ds-duong label { display:flex; align-items:center; gap:7px; padding:6px 12px; border:1.5px solid var(--vien); border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer; background:#fff; user-select:none; }
+  .ds-duong label i { width:10px; height:10px; border-radius:50%; display:block; }
+  .ds-duong label.tat { opacity:.45; }
+  .ds-duong input { display:none; }
+  .td-dau { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  .td-dau div { background:var(--the); border:1px solid var(--vien); border-radius:16px; padding:14px 16px; box-shadow:var(--bong); }
+  .td-dau b { display:block; font-size:19px; letter-spacing:-.01em; }
+  .td-dau span { color:var(--phu); font-size:12.5px; }
+  .td-form { display:grid; grid-template-columns:150px 150px 1fr auto auto; gap:12px; align-items:end; }
+  .td-form input[type=month] { width:100%; padding:8px 10px; border:1px solid var(--vien); border-radius:10px; font-size:13.5px; }
+  .ds-thang { display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); gap:8px; margin-top:14px; max-height:330px; overflow:auto; }
+  .th { border:1px solid var(--vien); border-radius:12px; padding:8px 11px; background:#fff; font-size:12.5px; }
+  .th b { font-size:13.5px; } .th .gc { color:var(--phu); margin-top:3px; line-height:1.4; }
+  .th.XONG { border-color:#a7dcb9; background:#f2faf5; } .th.LOI { border-color:#f2c3ad; background:#fdf4ef; }
+  .th.KHONG_ANH, .th.HUY { background:#f8faf8; opacity:.8; }
+  .th.TIM, .th.TAI, .th.NAP, .th.VE { border-color:var(--troi); background:#f2f8fb; box-shadow:0 0 0 3px rgba(59,130,166,.12); }
+  .tt { float:right; font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; background:var(--mo); color:var(--phu); }
+  .XONG .tt { background:var(--tot); color:#fff; } .LOI .tt { background:var(--loi); color:#fff; }
+  .TIM .tt, .TAI .tt, .NAP .tt, .VE .tt { background:var(--troi); color:#fff; }
+  .nhat-ky { background:#1f2d2a; color:#d5e0db; font-family:Consolas, monospace; font-size:12px; border-radius:12px; padding:10px 12px; height:170px; overflow:auto; white-space:pre-wrap; margin-top:12px; }
+  .cong-tac { display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; }
+  .cong-tac input { display:none; }
+  .cong-tac i { width:44px; height:24px; border-radius:999px; background:#c9d4ce; position:relative; transition:background .15s; flex:none; }
+  .cong-tac i::after { content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:left .15s; }
+  .cong-tac input:checked + i { background:var(--tot); } .cong-tac input:checked + i::after { left:23px; }
+  .bo-suu-tap { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px; }
+  .bst { border:1px solid var(--vien); border-radius:14px; overflow:hidden; background:#fff; cursor:pointer; transition:box-shadow .15s, transform .15s; }
+  .bst:hover { box-shadow:var(--bong); transform:translateY(-2px); }
+  .bst img { width:100%; aspect-ratio:1.45; object-fit:cover; object-position:left top; display:block; background:#f8faf8; border-bottom:1px solid var(--vien); }
+  .bst div { padding:8px 11px; font-size:12.5px; display:flex; justify-content:space-between; gap:6px; align-items:center; }
+  code.sql { font-family:Consolas, "Courier New", monospace; font-size:11.5px; color:var(--phu); white-space:normal; display:block; max-width:520px; }
+  @media (max-width:1000px) { .td-dau { grid-template-columns:1fr 1fr; } .td-form { grid-template-columns:1fr 1fr; } }
+
+  /* ================= BẢN TIN ================= */
+  .bt-thanh { display:flex; gap:12px; align-items:end; justify-content:space-between; flex-wrap:wrap; max-width:1100px; margin:0 auto 14px; }
+  .bt-thanh > div:first-child { min-width:260px; }
+  .bt-nut { display:flex; gap:8px; flex-wrap:wrap; }
+  .bt-to { background:#fff; max-width:1100px; margin:0 auto; border:1px solid var(--vien); border-radius:16px; padding:26px 30px 30px; box-shadow:var(--bong); }
+  .bt-dau { border-bottom:3px solid var(--chinh); padding-bottom:12px; margin-bottom:6px; }
+  .bt-loai { font-size:11.5px; font-weight:700; letter-spacing:.08em; color:var(--chinh); }
+  .bt-dau h2 { margin:4px 0 6px; font-size:21px; letter-spacing:-.01em; line-height:1.3; }
+  .bt-meta { color:var(--phu); font-size:12.5px; line-height:1.6; }
+  .bt-h { font-size:15px; margin:22px 0 10px; color:var(--chinh-dam); display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .bt-h small { font-weight:500; color:var(--phu); font-size:12px; }
+  .bt-tt { margin:0; padding-left:20px; line-height:1.65; font-size:13.5px; }
+  .bt-tt li { margin-bottom:3px; }
+  .bt-kpi { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; margin-top:12px; }
+  .bt-kpi div { background:var(--mo); border-radius:12px; padding:9px 11px; }
+  .bt-kpi b { display:block; font-size:18px; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .bt-kpi span { font-size:11.5px; color:var(--phu); line-height:1.35; display:block; }
+  .bt-kpi em { font-style:normal; font-size:11.5px; font-weight:600; }
+  .bt-3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  .bt-3 figure { margin:0; border:1px solid var(--vien); border-radius:10px; overflow:hidden; background:#fff; }
+  .bt-3 canvas { width:100%; height:auto; display:block; }
+  .bt-bd { height:220px; position:relative; border:1px solid var(--vien); border-radius:10px; padding:6px; }
+  .bt-bd canvas { width:100% !important; height:100% !important; }
+  .bt-bang { margin:12px 0; overflow:auto; }
+  .bt-bang table, .bt-top table { font-size:12px; }
+  .bt-bang th, .bt-bang td { text-align:right; padding:5px 7px; }
+  .bt-bang th:first-child, .bt-bang td:first-child { text-align:left; }
+  #bt-top > div { border:1px solid var(--vien); border-radius:10px; padding:8px 10px; }
+  #bt-top h4 { margin:0 0 6px; font-size:13px; }
+  #bt-top td:nth-child(2), #bt-top th:nth-child(2) { text-align:left; }
+  .bt-gc { font-size:12.5px; color:var(--phu); line-height:1.65; }
+  .tang { color:var(--loi); } .giam { color:var(--tot); }
+  @media print {
+    @page { size:A4 portrait; margin:12mm; }
+    body { overflow:visible !important; display:block !important; background:#fff !important; height:auto !important; }
+    body.in-ban-tin header, body.in-ban-tin nav, body.in-ban-tin .bt-thanh, body.in-ban-tin .trang:not(#trang-ban-tin) { display:none !important; }
+    body.in-ban-tin #trang-ban-tin { display:block !important; }
+    body.in-ban-tin .cuon { height:auto !important; overflow:visible !important; padding:0 !important; }
+    body.in-ban-tin .bt-to { border:0; box-shadow:none; padding:0; max-width:none; }
+    .bt-3 { grid-template-columns:repeat(3,1fr) !important; }
+    .bt-kpi { grid-template-columns:repeat(3,1fr) !important; }
+    .bt-h, figure, .bt-bd, #bt-top > div, .bt-bang table { break-inside:avoid; }
+  }
+  @media (max-width: 1100px) {
+    .bd-app { grid-template-columns:260px minmax(0,1fr) 0; }
+    .bd-app.mo-phai { grid-template-columns:260px minmax(0,1fr) 330px; }
+    .bd-app .bd-phai { overflow:hidden; }
+  }
+  /* ===== MobileGIS: điện thoại – bản đồ lên đầu, bảng điều khiển & danh sách xếp bên dưới ===== */
+  .nut-mb { display:none; }
+  @media (max-width: 760px) {
+    body { overflow:auto; font-size:14px; }
+    header { padding:7px 10px; gap:8px; }
+    header h1 { font-size:12.5px; line-height:1.3; }
+    .logo { width:30px; height:30px; }
+    .nguoi > button span { display:none; }
+    .nguoi > button { padding:3px; }
+    nav { padding:5px 8px; }
+    nav button, nav a { padding:7px 11px; font-size:12.5px; }
+    .trang.bat { display:block; }
+    .bd-app, .bd-app.an-phai, .bd-app.an-trai, .bd-app.an-trai.an-phai { display:flex; flex-direction:column; height:auto; }
+    .bd-giua { order:1; height:64vh; min-height:360px; flex:none; }
+    .bd-phai { order:2; height:66vh; border:0; border-top:1px solid var(--vien); }
+    .bd-trai { order:3; border:0; border-top:1px solid var(--vien); padding:14px 14px 40px; overflow:visible; }
+    .an-trai .bd-trai, .an-phai .bd-phai { padding:inherit; overflow:visible; }
+    .nut-gap { display:none; }
+    header .phu, .gee-tt { display:none; }
+    .tim-ban-do { width:calc(100% - 128px); min-width:0; }
+    .nhan-ky { top:auto; bottom:8px; left:8px; transform:none; font-size:11px; padding:4px 10px; max-width:calc(100% - 70px); overflow:hidden; text-overflow:ellipsis; }
+    .chu-giai-noi { min-width:0; width:200px; bottom:auto; top:56px; left:8px; padding:6px 9px; }
+    .chu-giai-noi .phu-cg { display:none; }
+    .cong-cu { top:8px; right:8px; }
+    .hop-noi select { max-width:118px; }
+    .the-tt { left:8px; right:8px; width:auto; bottom:8px; max-height:60%; overflow:auto; }
+    .the-tt .bd { height:120px; }
+    .maplibregl-ctrl-bottom-right { bottom:34px; }
+    .nut-mb { display:flex; position:absolute; z-index:6; right:8px; bottom:40px; flex-direction:column; gap:6px; }
+    .nut-mb button { border:1px solid var(--vien); background:rgba(255,255,255,.96); box-shadow:var(--bong); border-radius:999px; padding:7px 12px; font-size:12px; font-weight:600; color:var(--chinh-dam); }
+    .bt-to { padding:16px 14px; }
+    .bt-3, .bt-kpi { grid-template-columns:1fr !important; }
+    .bt-kpi { grid-template-columns:1fr 1fr !important; }
+    .bt-dau h2 { font-size:17px; }
+    .cuon { padding:12px; }
+    .tai-len, .luoi-3, .luoi-2, .buoc, .kpi, .xuat-luoi { grid-template-columns:1fr; }
+    .loc { grid-template-columns:1fr 1fr; }
+    .the-tt { width:calc(100% - 20px); }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f7d6d" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+  </div>
+  <div>
+    <h1>Hệ thống giám sát nhiệt độ bề mặt – lớp phủ thực vật – mức độ khô hạn tại TP.HCM</h1>
+    <div class="phu">LST · NDVI · TVDI từ ảnh Landsat 8/9 (Google Earth Engine) · dự báo AI 12 tháng &amp; 7 ngày · đất liền TP.HCM, 167 phường/xã</div>
+  </div>
+  <div class="dau-phai">
+    <div class="gee-tt chi-admin" id="trang-thai-gee"><i></i><span>GEE: đang kiểm tra</span></div>
+    <div class="nguoi">
+      <button id="nut-nguoi" aria-haspopup="true"><i id="nguoi-chu">?</i><span><span id="nguoi-ten">…</span><small id="nguoi-vt"></small></span></button>
+      <div class="menu" id="menu-nguoi">
+        <button id="m-tk" class="chi-admin">Quản lý tài khoản</button>
+        <button id="m-mk">Đổi mật khẩu</button>
+        <a href="/dang-xuat">Đăng xuất</a>
+      </div>
+    </div>
+  </div>
+</header>
+<nav>
+  <button data-tab="ban-do" class="bat">Bản đồ &amp; phường/xã</button>
+  <button data-tab="ban-tin">Bản tin &amp; báo cáo</button>
+  <button data-tab="chuoi">Chuỗi thời gian</button>
+  <button data-tab="danh-gia">Đánh giá mô hình</button>
+  <button data-tab="kho">Kho ảnh <span class="dem" id="dem-kho">–</span></button>
+  <button data-tab="tu-dong" class="chi-admin">Tự động GEE <span class="dem" id="dem-td" style="display:none">●</span> <span class="khoa">admin</span></button>
+  <button data-tab="tai-len" class="chi-admin">Tải ảnh lên <span class="khoa">admin</span></button>
+  <button data-tab="hieu-nang" class="chi-admin">Hiệu năng Big Data <span class="khoa">admin</span></button>
+  <a href="/csdl" class="chi-admin">Dữ liệu CSDL</a>
+</nav>
+
+<!-- ================= BẢN ĐỒ ================= -->
+<section class="trang bat" id="trang-ban-do">
+<div class="bd-app" id="bd-app">
+  <aside class="bd-trai" aria-label="Điều khiển bản đồ">
+    <div class="tieu-de-nhom">Dữ liệu</div>
+    <div class="khoi">
+      <div class="nut-nhom" id="nhom-loai">
+        <button data-loai="HIEN_TRANG">Hiện trạng</button>
+        <button data-loai="DU_BAO">Dự báo AI</button>
+        <button data-loai="GIA_LAP">Giả lập</button>
+      </div>
+    </div>
+    <div class="khoi" id="khoi-tan-suat" style="display:none">
+      <span class="nhan">Dự báo theo</span>
+      <div class="nut-nhom" id="nhom-tan-suat">
+        <button data-ts="THANG" class="bat" title="Mô hình AI học từ chuỗi Landsat theo tháng">Tháng · AI<br><small>12 tháng tới</small></button>
+        <button data-ts="NGAY" title="Landsat 16 ngày/lần nên dự báo ngày hiện là GIẢ LẬP">Ngày · 7 ngày<br><small>giả lập</small></button>
+      </div>
+      <div class="ghi-chu" id="gc-tan-suat" style="margin-top:6px"></div>
+    </div>
+    <div class="khoi">
+      <span class="nhan">Chỉ số</span>
+      <div class="nut-nhom" id="nhom-cs">
+        <button data-cs="LST">LST</button><button data-cs="NDVI">NDVI</button><button data-cs="TVDI">TVDI</button>
+      </div>
+    </div>
+    <div class="khoi">
+      <label class="nhan" for="chon-bo">Bộ dữ liệu</label>
+      <select id="chon-bo"></select>
+    </div>
+
+    <div class="tieu-de-nhom">Thời gian &amp; animation</div>
+    <div class="khoi">
+      <div class="ky-lon" id="ky-hien">–</div>
+      <input type="range" id="thanh-ky" min="0" max="0" value="0" aria-label="Chọn tháng">
+      <div class="luoi-2c" style="margin-top:8px">
+        <div><label class="nhan" for="ani-tu" id="nhan-ani-tu">Từ tháng</label><select id="ani-tu"></select></div>
+        <div><label class="nhan" for="ani-den" id="nhan-ani-den">Đến tháng</label><select id="ani-den"></select></div>
+      </div>
+      <div class="hang" style="margin-top:8px">
+        <button class="nut-tron" id="nut-chay" title="Chạy animation trong khoảng đã chọn" aria-label="Chạy animation">▶</button>
+        <select id="ani-toc" aria-label="Tốc độ" style="flex:1">
+          <option value="2000">Chậm (2 giây/khung)</option><option value="1200" selected>Vừa (1,2 giây/khung)</option><option value="600">Nhanh (0,6 giây/khung)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="tieu-de-nhom">Hiển thị</div>
+    <div class="khoi">
+      <span class="nhan">Thể hiện theo</span>
+      <div class="nut-nhom" id="nhom-don-vi">
+        <button data-dv="phuong" class="bat">Phường/xã</button><button data-dv="luoi">Ô lưới 500 m</button>
+      </div>
+    </div>
+    <div class="khoi">
+      <span class="nhan">Thang màu</span>
+      <div class="nut-nhom" id="nhom-thang">
+        <button data-th="tu_dong" class="bat" title="Kéo giãn theo giá trị nhỏ nhất – lớn nhất của lớp đang xem">Theo dữ liệu</button>
+        <button data-th="co_dinh" title="Thang cố định trong danh mục – dùng khi so sánh nhiều tháng">Cố định</button>
+      </div>
+    </div>
+    <div class="khoi">
+      <div class="hang"><span style="flex:1;font-size:12.5px">Độ cao khối 3D</span><input type="range" id="do-cao-3d" min="1" max="10" value="5" style="width:110px" aria-label="Độ cao 3D"></div>
+      <div class="hang"><span style="flex:1;font-size:12.5px">Độ đậm lớp màu</span><input type="range" id="do-dam" min="20" max="100" value="88" style="width:110px" aria-label="Độ đậm"></div>
+      <label class="chk"><input type="checkbox" id="bat-ranh-gioi" checked> Ranh giới phường/xã</label>
+      <label class="chk chi-admin"><input type="checkbox" id="bat-gee"> Lớp GEE trực tiếp (Landsat 30 m)</label>
+    </div>
+
+    <div class="tieu-de-nhom">Lọc theo ngưỡng</div>
+    <div class="khoi" id="khoi-nguong">
+      <div class="nguong"><input type="checkbox" id="ng-LST-bat"><b>LST</b><select id="ng-LST-dk"><option value="gt">&gt;</option><option value="lt">&lt;</option></select><input type="number" id="ng-LST-gt" value="35" step="0.5" aria-label="Ngưỡng LST (°C)"></div>
+      <div class="nguong"><input type="checkbox" id="ng-NDVI-bat"><b>NDVI</b><select id="ng-NDVI-dk"><option value="lt">&lt;</option><option value="gt">&gt;</option></select><input type="number" id="ng-NDVI-gt" value="0.3" step="0.05" aria-label="Ngưỡng NDVI"></div>
+      <div class="nguong"><input type="checkbox" id="ng-TVDI-bat"><b>TVDI</b><select id="ng-TVDI-dk"><option value="gt">&gt;</option><option value="lt">&lt;</option></select><input type="number" id="ng-TVDI-gt" value="0.6" step="0.05" aria-label="Ngưỡng TVDI"></div>
+      <div class="ghi-chu">Đánh dấu ô để bật điều kiện (nhiều điều kiện = thỏa tất cả). Ví dụ: LST &gt; 40.</div>
+      <div class="ket-loc" id="ket-loc"></div>
+    </div>
+
+    <div class="tieu-de-nhom">Thống kê lớp đang xem</div>
+    <div class="khoi">
+      <div class="the-nho">
+        <div><b id="tk-tb">–</b><span>Trung bình</span></div>
+        <div><b id="tk-so">–</b><span id="tk-so-nhan">Số phường có dữ liệu</span></div>
+        <div><b id="tk-min">–</b><span>Nhỏ nhất</span></div>
+        <div><b id="tk-max">–</b><span>Lớn nhất</span></div>
+      </div>
+      <div id="ds-cap" style="margin-top:8px"></div>
+    </div>
+    <div class="khoi" style="display:grid;gap:6px">
+      <button class="nut chinh" id="nut-xuat-bd">Xuất bản đồ A4 (tọa độ, la bàn, thang màu)</button>
+      <a class="nut" id="nut-tai-tif" href="#" download>Tải GeoTIFF lớp này</a>
+    </div>
+  </aside>
+
+  <div class="bd-giua">
+    <div id="map" aria-label="Bản đồ"></div>
+    <div class="noi tim-ban-do">
+      <input type="search" id="o-tim" placeholder="Tìm phường, xã…" autocomplete="off" aria-label="Tìm phường, xã">
+      <div class="goi-y" id="goi-y"></div>
+    </div>
+    <div class="noi nhan-ky" id="nhan-ky">–</div>
+    <div class="noi cong-cu">
+      <div class="hop-noi" id="nhom-2d3d" role="group" aria-label="2D hoặc 3D">
+        <button data-che-do="2d" class="bat">2D</button><button data-che-do="3d">3D</button>
+      </div>
+      <div class="hop-noi"><select id="chon-nen" aria-label="Bản đồ nền">
+        <option value="sang">Nền sáng (Esri)</option><option value="esri">Đường phố (Esri)</option>
+        <option value="anh">Ảnh vệ tinh (Esri)</option><option value="osm">OpenStreetMap</option><option value="trong">Không nền</option>
+      </select></div>
+    </div>
+    <div class="noi chu-giai-noi" id="chu-giai-noi">
+      <b id="cg-ten">–</b>
+      <div class="chu-giai" id="chu-giai"></div>
+      <div class="chu-giai-so"><span id="cg-min"></span><span id="cg-giua"></span><span id="cg-max"></span></div>
+      <div class="phu-cg"><span><i style="background:#d9dfdb"></i>Không có dữ liệu</span><span id="cg-loc" style="display:none"><i style="background:#eef1ef;border:1px solid #c9d1cc"></i>Không thỏa ngưỡng</span></div>
+    </div>
+    <div class="noi dang-tai" id="dang-tai">Đang tải…</div>
+    <div class="nut-mb" aria-label="Lối tắt trên điện thoại">
+      <button type="button" onclick="document.querySelector('.bd-phai').scrollIntoView({behavior:'smooth'})">☰ Danh sách</button>
+      <button type="button" onclick="document.querySelector('.bd-trai').scrollIntoView({behavior:'smooth'})">⚙ Lớp &amp; lọc</button>
+    </div>
+    <button class="noi nut-gap trai" id="gap-trai" title="Ẩn/hiện bảng điều khiển" aria-label="Ẩn/hiện bảng điều khiển">◀</button>
+    <button class="noi nut-gap phai" id="gap-phai" title="Ẩn/hiện danh sách phường" aria-label="Ẩn/hiện danh sách phường">▶</button>
+    <div class="noi the-tt" id="the-tt">
+      <h4><span id="tt-ten">–</span><button class="x" id="tt-dong" aria-label="Đóng">✕</button></h4>
+      <div class="ba" id="tt-ba"></div>
+      <div class="bd"><canvas id="tt-bd"></canvas></div>
+      <div class="hang" style="justify-content:space-between;margin-top:6px"><span class="ghi-chu" id="tt-ghi"></span><button class="nut nho" id="tt-csv">Tải CSV</button></div>
+    </div>
+  </div>
+
+  <aside class="bd-phai" aria-label="Danh sách phường, xã">
+    <div class="ds-dau">
+      <h3><span>Danh sách <span id="ds-tong">167</span> phường, xã</span><small class="chip cs" id="ds-ky">–</small></h3>
+      <div class="ghi-chu" id="ds-mo-ta">Giá trị trung bình các ô lưới trong phường. Bấm tên để định vị.</div>
+      <div class="tab-xh" id="tab-xh">
+        <button data-xh="LST" class="bat">LST<small>cao → thấp</small></button>
+        <button data-xh="NDVI">NDVI<small>thấp → cao</small></button>
+        <button data-xh="TVDI">TVDI<small>cao → thấp</small></button>
+      </div>
+      <input type="search" id="ds-tim" placeholder="Lọc theo tên…" style="margin-top:8px" aria-label="Lọc danh sách theo tên">
+    </div>
+    <div class="ds-than" id="ds-than"><div class="ghi-chu" style="padding:14px">Đang tải…</div></div>
+    <div class="ds-chan">
+      <span class="ghi-chu" id="ds-dem">–</span>
+      <button class="nut nho" id="ds-csv">Tải CSV</button>
+    </div>
+  </aside>
+</div>
+</section>
+
+
+<!-- ================= TỰ ĐỘNG GEE ================= -->
+<section class="trang" id="trang-tu-dong"><div class="cuon"><div class="rong">
+  <h2 class="tieu-de-trang">Tự động lấy dữ liệu từ Google Earth Engine</h2>
+  <p class="mo-ta-trang">Chọn khoảng tháng rồi bấm một nút. Hệ thống tự làm 5 bước cho từng tháng:
+    <b>(1)</b> hỏi GEE có bao nhiêu cảnh Landsat 8/9, <b>(2)</b> tính LST, NDVI, TVDI trên GEE và tải ảnh GeoTIFF về,
+    <b>(3)</b> nạp vào bảng Big Data, <b>(4)</b> tính thống kê vùng, <b>(5)</b> vẽ bản đồ chuyên đề cho 3 chỉ số.
+    Bật <b>lịch tự động</b> để hệ thống tự kiểm tra và tải tháng mới mà không cần bấm.</p>
+  <div class="td-dau" id="td-dau"></div>
+
+  <div class="khung">
+    <h3>Tải dữ liệu theo khoảng tháng</h3>
+    <div class="td-form">
+      <div><label class="nhan" for="td-tu">Từ tháng</label><input type="month" id="td-tu"></div>
+      <div><label class="nhan" for="td-den">Đến tháng</label><input type="month" id="td-den"></div>
+      <div>
+        <label class="chk"><input type="checkbox" id="td-ve" checked> Tự vẽ bản đồ LST, NDVI, TVDI sau khi nạp</label>
+        <label class="chk"><input type="checkbox" id="td-tai-lai"> Tải lại cả tháng đã có tệp</label>
+      </div>
+      <button class="nut chinh" id="td-chay">Bắt đầu tải từ GEE</button>
+      <button class="nut do" id="td-huy" disabled>Dừng</button>
+    </div>
+    <div class="tien-do" id="td-tien-do" style="display:block"><u></u></div>
+    <div class="trang-thai" id="td-tt">Chưa chạy lần nào kể từ khi mở web.</div>
+    <div class="ds-thang" id="td-thang"></div>
+    <div class="nhat-ky" id="td-log">Nhật ký sẽ hiện ở đây…</div>
+  </div>
+
+  <div class="khung">
+    <div class="hang" style="justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <h3 style="margin:0">Lịch cập nhật tự động</h3>
+      <label class="cong-tac"><input type="checkbox" id="lich-bat"><i></i><span id="lich-chu">Đang tắt</span></label>
+    </div>
+    <div class="hang" style="gap:14px;margin-top:12px;flex-wrap:wrap">
+      <span>Kiểm tra tháng mới mỗi</span>
+      <select id="lich-chu-ky" style="width:auto"><option value="6">6 giờ</option><option value="12">12 giờ</option>
+        <option value="24" selected>1 ngày</option><option value="168">1 tuần</option><option value="720">1 tháng</option></select>
+      <label class="chk" style="margin:0"><input type="checkbox" id="lich-ve" checked> Tự vẽ bản đồ</label>
+      <button class="nut" id="lich-luu">Lưu lịch</button>
+    </div>
+    <p class="ghi-chu" id="lich-tt" style="margin:10px 0 0"></p>
+    <p class="ghi-chu" style="margin:6px 0 0">Khi lịch bật, mỗi chu kỳ hệ thống lấy tháng mới nhất đang có trong CSDL, rồi tự tải các tháng còn thiếu đến tháng trước.
+      Lịch chạy khi trang web (app.py) đang mở và đã kết nối GEE; cấu hình lưu trong data/tu_dong.json nên lần sau mở web vẫn giữ.</p>
+  </div>
+
+  <div class="khung">
+    <div class="hang" style="justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <h3 style="margin:0">Bản đồ đã vẽ tự động <small class="ghi-chu" id="bd-dem"></small></h3>
+      <div class="hang" style="gap:8px">
+        <select id="bd-loc-cs" style="width:auto"><option value="">Mọi chỉ số</option><option>LST</option><option>NDVI</option><option>TVDI</option></select>
+        <select id="bd-loc-loai" style="width:auto"><option value="">Mọi loại</option><option value="HT">Hiện trạng</option><option value="DB">Dự báo</option><option value="GL">Giả lập</option></select>
+        <button class="nut" id="bd-ve-het">Vẽ lại mọi tháng hiện trạng</button>
+      </div>
+    </div>
+    <div class="bo-suu-tap" id="bd-ds"><div class="ghi-chu">Chưa có bản đồ.</div></div>
+    <p class="ghi-chu" style="margin-top:10px">Tệp bản đồ lưu trong thư mục <b>ket_qua/ban_do</b> (dạng SVG, mở bằng trình duyệt). Bấm vào bản đồ để xem lớn và tải về PNG để chèn vào Word.</p>
+  </div>
+</div></div></section>
+<div class="phong-to" id="phong-to"><div class="hop">
+  <div class="hang" style="justify-content:space-between;margin-bottom:10px;gap:8px">
+    <b id="pt-ten"></b>
+    <span class="hang" style="gap:8px"><button class="nut nho chinh" id="pt-png">Tải PNG</button><a class="nut nho" id="pt-svg" download>Tải SVG</a><button class="nut nho" id="pt-dong">Đóng ✕</button></span>
+  </div>
+  <img id="pt-anh" alt="Bản đồ">
+</div></div>
+
+<!-- ================= TẢI ẢNH LÊN ================= -->
+<section class="trang" id="trang-tai-len"><div class="cuon"><div class="rong">
+  <h2 class="tieu-de-trang">Tải ảnh GeoTIFF lên kho</h2>
+  <p class="mo-ta-trang">Hệ thống đọc hệ tọa độ, khung bao và thống kê của ảnh, nắn ảnh về lưới chuẩn 500 m của đề tài,
+    ghi giá trị từng ô vào bảng Big Data <b>ts.gia_tri_pixel</b>, lưu tệp gốc (dạng Cloud Optimized GeoTIFF) vào kho và tính thống kê ngay.
+    Nhận được ảnh ở mọi hệ tọa độ, mọi độ phân giải (Landsat 30 m, MODIS 1 km…), ảnh 1 băng hoặc 3 băng LST·NDVI·TVDI.</p>
+
+  <div class="khung">
+    <div class="tai-len">
+      <div>
+        <label class="tha" id="vung-tha" for="chon-tep">
+          <div>
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            <b>Chọn hoặc kéo thả tệp .tif</b>
+            <span>Chọn được nhiều tệp một lúc. Tệp .zip tải từ GEE được giải nén tự động.</span>
+          </div>
+        </label>
+        <input type="file" id="chon-tep" accept=".tif,.tiff,.zip" multiple hidden>
+        <div class="ds-tep" id="ds-tep"></div>
+        <div id="ban-do-xem"></div>
+      </div>
+
+      <div class="form">
+        <div>
+          <label class="nhan" for="f-cs">Chỉ số</label>
+          <select id="f-cs">
+            <option value="AUTO">Tự nhận theo tên tệp / số băng</option>
+            <option value="LST">LST – nhiệt độ bề mặt</option>
+            <option value="NDVI">NDVI – chỉ số thực vật</option>
+            <option value="TVDI">TVDI – chỉ số khô hạn</option>
+            <option value="ALL">Ảnh 3 băng: LST, NDVI, TVDI</option>
+          </select>
+        </div>
+        <div>
+          <label class="nhan" for="f-ky">Ngày thu nhận / ngày dự báo</label>
+          <input type="date" id="f-ky">
+        </div>
+        <div class="du">
+          <span class="nhan">Loại dữ liệu</span>
+          <div class="chon-loai" id="f-loai">
+            <label data-l="HIEN_TRANG" class="bat"><input type="radio" name="loai" value="HIEN_TRANG" checked> Hiện trạng (GEE)</label>
+            <label data-l="DU_BAO"><input type="radio" name="loai" value="DU_BAO"> Dự báo (mô hình)</label>
+            <label data-l="GIA_LAP"><input type="radio" name="loai" value="GIA_LAP"> Giả lập</label>
+          </div>
+        </div>
+        <div>
+          <label class="nhan" for="f-ve-tinh">Vệ tinh</label>
+          <input type="text" id="f-ve-tinh" value="Landsat 8/9">
+        </div>
+        <div>
+          <label class="nhan" for="f-nguon">Nguồn</label>
+          <input type="text" id="f-nguon" value="GEE">
+        </div>
+        <div class="du" id="o-mo-hinh" style="display:none">
+          <label class="nhan" for="f-mo-hinh">Tên mô hình <small>(bắt buộc với ảnh dự báo)</small></label>
+          <select id="f-mo-hinh"></select>
+        </div>
+        <div class="du" id="o-kich-ban" style="display:none">
+          <label class="nhan" for="f-kich-ban">Tên kịch bản giả lập</label>
+          <input type="text" id="f-kich-ban" placeholder="vd: Đô thị hóa tăng tốc 2026">
+        </div>
+        <div>
+          <label class="nhan" for="f-bo">Lưu vào bộ dữ liệu</label>
+          <select id="f-bo"></select>
+        </div>
+        <div>
+          <label class="nhan" for="f-nodata">Giá trị không có dữ liệu <small>(để trống = tự nhận)</small></label>
+          <input type="number" id="f-nodata" placeholder="vd: -9999" step="any">
+        </div>
+        <div class="du hang" style="gap:12px">
+          <button class="nut chinh" id="nut-tai-len" disabled>Tải lên kho</button>
+          <button class="nut" id="nut-xoa-ds" disabled>Bỏ chọn tệp</button>
+        </div>
+        <div class="du">
+          <div class="tien-do" id="tien-do"><u></u></div>
+          <div class="trang-thai" id="trang-thai-tl"></div>
+          <div id="ket-qua-tl"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="khung">
+    <h3>Hệ thống xử lý ảnh tải lên như thế nào</h3>
+    <div class="buoc">
+      <div><em>1</em><b>Đọc ảnh</b>PostGIS đọc GeoTIFF bằng GDAL: hệ tọa độ, kích thước, số băng, thống kê; báo ảnh phủ bao nhiêu % vùng nghiên cứu.</div>
+      <div><em>2</em><b>Nắn về lưới chuẩn</b>Chuyển về UTM 48N, ô 500 m. Ảnh mịn lấy trung bình nhiều điểm trong ô; ảnh thô nội suy song tuyến. Tự đổi Kelvin → °C.</div>
+      <div><em>3</em><b>Ghi vào bảng Big Data</b>Mỗi ô × tháng × chỉ số thành 1 dòng trong ts.gia_tri_pixel, tự rơi vào đúng phân vùng loại dữ liệu và năm.</div>
+      <div><em>4</em><b>Lưu kho và thống kê</b>Tệp gốc lưu vào data/kho_anh, danh mục ghi vào rs.anh_raster, thống kê vùng tính ngay vào tk.thong_ke_vung.</div>
+    </div>
+  </div>
+
+  <div class="khung">
+    <div class="hang" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Lịch sử nạp dữ liệu</h3><button class="nut nho" id="nut-lich-su">Làm mới</button></div>
+    <div class="bang-cuon" id="lich-su"><div class="ghi-chu" style="padding:12px">Đang tải…</div></div>
+  </div>
+</div></div></section>
+
+<!-- ================= CHUỖI THỜI GIAN ================= -->
+<!-- ================= BẢN TIN & BÁO CÁO ================= -->
+<section class="trang" id="trang-ban-tin"><div class="cuon"><div class="rong">
+  <div class="bt-thanh">
+    <div><label class="nhan" for="bt-ky">Kỳ hiện trạng (Landsat – GEE)</label><select id="bt-ky"></select></div>
+    <div class="bt-nut">
+      <button class="nut chinh" id="bt-word">Xuất báo cáo Word (.docx)</button>
+      <button class="nut" id="bt-in">In / Lưu PDF</button>
+      <button class="nut" id="bt-csv">Tải bảng số liệu (CSV)</button>
+    </div>
+  </div>
+  <article class="bt-to" id="bt">
+    <div class="bt-dau">
+      <div class="bt-loai">BẢN TIN GIÁM SÁT &amp; DỰ BÁO</div>
+      <h2>Nhiệt độ bề mặt – lớp phủ thực vật – mức độ khô hạn tại TP. Hồ Chí Minh</h2>
+      <div class="bt-meta" id="bt-meta">Đang tổng hợp…</div>
+    </div>
+    <h3 class="bt-h">1. Tóm tắt</h3>
+    <ul class="bt-tt" id="bt-tom-tat"></ul>
+    <div class="bt-kpi" id="bt-kpi"></div>
+
+    <h3 class="bt-h">2. Bản đồ hiện trạng theo phường/xã <small id="bt-h2-ky"></small></h3>
+    <div class="bt-3">
+      <figure><canvas id="bt-bd-LST"></canvas></figure>
+      <figure><canvas id="bt-bd-NDVI"></canvas></figure>
+      <figure><canvas id="bt-bd-TVDI"></canvas></figure>
+    </div>
+
+    <h3 class="bt-h">3. Xếp hạng 10 phường/xã đáng chú ý</h3>
+    <div class="bt-3" id="bt-top"></div>
+
+    <h3 class="bt-h">4. Dự báo theo tháng bằng mô hình AI <small id="bt-h4"></small></h3>
+    <div class="bt-3">
+      <div class="bt-bd"><canvas id="bt-c12-LST"></canvas></div>
+      <div class="bt-bd"><canvas id="bt-c12-NDVI"></canvas></div>
+      <div class="bt-bd"><canvas id="bt-c12-TVDI"></canvas></div>
+    </div>
+    <div class="bt-bang" id="bt-b12"></div>
+    <div class="bt-3" id="bt-bd-db-khoi">
+      <figure><canvas id="bt-db-LST"></canvas></figure>
+      <figure><canvas id="bt-db-NDVI"></canvas></figure>
+      <figure><canvas id="bt-db-TVDI"></canvas></figure>
+    </div>
+
+    <h3 class="bt-h">5. Dự báo 7 ngày tới <span class="nhan-gl">GIẢ LẬP</span> <small id="bt-h5"></small></h3>
+    <p class="bt-gc" id="bt-c7-trong" style="display:none">Chưa có dự báo ngày trong CSDL. Quản trị viên chạy <code>py ai/gia_lap_ngay.py</code> (bước 5 của chay.py tự chạy) để tạo dự báo 7 ngày bắt đầu từ ngày mai.</p>
+    <div class="bt-3" id="bt-c7-khoi">
+      <div class="bt-bd"><canvas id="bt-c7-LST"></canvas></div>
+      <div class="bt-bd"><canvas id="bt-c7-NDVI"></canvas></div>
+      <div class="bt-bd"><canvas id="bt-c7-TVDI"></canvas></div>
+    </div>
+    <div class="bt-bang" id="bt-b7"></div>
+
+    <h3 class="bt-h">6. Ghi chú phương pháp</h3>
+    <div class="bt-gc" id="bt-gc"></div>
+  </article>
+</div></div></section>
+
+<section class="trang" id="trang-chuoi"><div class="cuon"><div class="rong">
+  <h2 class="tieu-de-trang">Chuỗi thời gian theo vùng</h2>
+  <p class="mo-ta-trang">So sánh trên cùng một trục thời gian: <b style="color:var(--ht)">hiện trạng</b> tính từ GEE,
+    <b style="color:var(--db)">dự báo</b> của từng mô hình và <b style="color:var(--gl)">giả lập</b> kịch bản.
+    Chọn toàn vùng hoặc một quận/huyện, phường/xã. Số liệu đọc từ bảng thống kê dựng sẵn <b>tk.thong_ke_vung</b> nên hiện gần như tức thì.</p>
+  <div class="khung">
+    <div class="loc loc-chuoi">
+      <div><span class="nhan">Chỉ số</span>
+        <div class="nut-nhom" id="c-cs"><button data-cs="LST" class="bat">LST</button><button data-cs="NDVI">NDVI</button><button data-cs="TVDI">TVDI</button></div></div>
+      <div><label class="nhan" for="c-vung">Vùng</label><select id="c-vung"><option value="0">Toàn vùng nghiên cứu</option></select></div>
+      <div><label class="nhan" for="c-tu">Từ năm</label><select id="c-tu"></select></div>
+      <div><label class="nhan" for="c-den">Đến năm</label><select id="c-den"></select></div>
+      <div class="hang" style="gap:8px"><button class="nut" id="c-csv">Tải CSV</button><button class="nut" id="c-png">Tải ảnh PNG</button></div>
+    </div>
+    <div class="ds-duong" id="c-duong"></div>
+    <div style="height:360px;position:relative"><canvas id="c-bd"></canvas><div class="trong" id="c-trong" style="display:none">Chưa có thống kê cho lựa chọn này</div></div>
+  </div>
+  <div class="kpi" id="c-kpi"></div>
+  <div class="luoi-2">
+    <div class="khung"><h3>Trung bình theo năm (hiện trạng)</h3><div style="height:260px"><canvas id="c-nam"></canvas></div></div>
+    <div class="khung"><h3>Chu kỳ mùa: trung bình theo tháng trong năm</h3><div style="height:260px"><canvas id="c-mua"></canvas></div></div>
+  </div>
+</div></div></section>
+
+<!-- ================= KHO ẢNH ================= -->
+<section class="trang" id="trang-kho"><div class="cuon"><div class="rong">
+  <h2 class="tieu-de-trang">Kho ảnh</h2>
+  <p class="mo-ta-trang">Mọi lớp ảnh đang có trong CSDL: hiện trạng tính từ GEE, dự báo của từng mô hình, giả lập và ảnh tải lên.
+    Mỗi dòng là một bộ dữ liệu × chỉ số × tháng. Tải về GeoTIFF bất kỳ lớp nào; ảnh tải lên từ web thì xóa được.</p>
+  <div class="kpi" id="kpi-kho"></div>
+  <div class="khung">
+    <div class="loc">
+      <div><label class="nhan" for="k-cs">Chỉ số</label><select id="k-cs"><option value="">Tất cả</option><option>LST</option><option>NDVI</option><option>TVDI</option></select></div>
+      <div><label class="nhan" for="k-loai">Loại dữ liệu</label><select id="k-loai"><option value="">Tất cả</option><option value="HIEN_TRANG">Hiện trạng</option><option value="DU_BAO">Dự báo</option><option value="GIA_LAP">Giả lập</option></select></div>
+      <div><label class="nhan" for="k-nam">Năm</label><select id="k-nam"><option value="">Tất cả</option></select></div>
+      <div><label class="nhan" for="k-nguon">Nguồn</label><select id="k-nguon"><option value="">Tất cả</option><option value="TL">Ảnh tải lên</option><option value="GOC">Dữ liệu gốc</option></select></div>
+      <div><label class="nhan" for="k-tim">Tìm</label><input type="search" id="k-tim" placeholder="Tên tệp, bộ dữ liệu, mô hình…"></div>
+      <button class="nut" id="nut-lam-moi-kho">Làm mới</button>
+    </div>
+    <div class="bang-cuon" id="bang-kho"><div class="ghi-chu" style="padding:12px">Đang tải…</div></div>
+    <div class="phan-trang" id="phan-trang"></div>
+  </div>
+</div></div></section>
+
+<!-- ================= ĐÁNH GIÁ MÔ HÌNH ================= -->
+<section class="trang" id="trang-danh-gia"><div class="cuon"><div class="rong">
+  <h2 class="tieu-de-trang">Đánh giá 7 mô hình dự báo</h2>
+  <p class="mo-ta-trang">Chỉ tiêu trên tập kiểm tra (năm cuối chuỗi, dự báo trước 1 tháng). Cột RMSE 2026 so dự báo cuốn chiếu 6 tháng của năm 2026 với ảnh GEE thật của 2026.
+    MAE, RMSE càng nhỏ càng tốt; R² càng gần 1 càng tốt; MAPE là sai số phần trăm.</p>
+  <div class="luoi-3" id="danh-gia"></div>
+</div></div></section>
+
+<!-- ================= HIỆU NĂNG ================= -->
+<section class="trang" id="trang-hieu-nang"><div class="cuon"><div class="rong">
+  <h2 class="tieu-de-trang">Hiệu năng truy vấn Big Data</h2>
+  <p class="mo-ta-trang">Chạy thật các truy vấn điển hình trên bảng pixel và đo thời gian bằng EXPLAIN ANALYZE.
+    Cột “phân vùng đã quét” cho thấy PostgreSQL chỉ đọc đúng phân vùng cần thiết (partition pruning) thay vì quét cả bảng.</p>
+  <div class="kpi" id="kpi-hn"></div>
+  <div class="khung">
+    <div class="hang" style="justify-content:space-between;margin-bottom:12px">
+      <h3 style="margin:0">Kết quả đo</h3>
+      <button class="nut chinh" id="nut-do">Chạy kiểm thử</button>
+    </div>
+    <div id="bang-hn" class="ghi-chu">Bấm “Chạy kiểm thử” để đo.</div>
+  </div>
+  <div class="luoi-2">
+    <div class="khung"><h3>Thời gian từng truy vấn (ms)</h3><div style="height:280px"><canvas id="bd-hn"></canvas></div></div>
+    <div class="khung"><h3>Số dòng theo phân vùng</h3><div style="height:280px"><canvas id="bd-pv"></canvas></div></div>
+  </div>
+</div></div></section>
+
+
+<!-- ================= HỘP THOẠI: XUẤT BẢN ĐỒ A4 ================= -->
+<div class="phong-to" id="hop-xuat"><div class="hop hop-thoai" style="width:min(1180px,96vw)">
+  <h3>Xuất bản đồ chuyên đề khổ A4 <button class="x" data-dong="hop-xuat" aria-label="Đóng">✕</button></h3>
+  <div class="xuat-luoi">
+    <div>
+      <label class="nhan" for="x-ten">Tên bản đồ</label>
+      <input type="text" id="x-ten">
+      <label class="nhan" for="x-phu" style="margin-top:10px">Dòng phụ đề</label>
+      <input type="text" id="x-phu">
+      <label class="nhan" style="margin-top:10px">Khổ giấy</label>
+      <div class="nut-nhom" id="x-kho"><button data-kho="ngang" class="bat">A4 ngang</button><button data-kho="doc">A4 dọc</button></div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="x-vien" checked> Vẽ ranh giới phường/xã</label>
+      <label class="chk"><input type="checkbox" id="x-top" checked> Bảng 10 phường đứng đầu</label>
+      <label class="chk"><input type="checkbox" id="x-nhan" checked> Đánh số 10 phường đứng đầu trên bản đồ</label>
+      <p class="ghi-chu" style="margin-top:12px">Bản đồ gồm: tên bản đồ, lưới tọa độ địa lý (kinh độ – vĩ độ), mũi tên chỉ hướng Bắc, thước tỷ lệ, thang màu – chú giải, nguồn dữ liệu. Ảnh PNG 300 dpi để chèn vào báo cáo Word.</p>
+      <div style="display:grid;gap:6px;margin-top:12px">
+        <button class="nut chinh" id="x-ve">Vẽ lại</button>
+        <button class="nut" id="x-png">Tải ảnh PNG (300 dpi)</button>
+        <button class="nut" id="x-in">In / Lưu PDF</button>
+      </div>
+    </div>
+    <div><img id="x-anh" alt="Xem trước bản đồ A4" style="width:100%"></div>
+  </div>
+</div></div>
+
+<!-- ================= HỘP THOẠI: TÀI KHOẢN (admin) ================= -->
+<div class="phong-to" id="hop-tk"><div class="hop hop-thoai" style="width:min(720px,96vw)">
+  <h3>Quản lý tài khoản <button class="x" data-dong="hop-tk" aria-label="Đóng">✕</button></h3>
+  <p class="ghi-chu" style="margin:0 0 10px"><b>Quản trị viên</b>: toàn quyền. <b>Người dùng</b>: chỉ xem bản đồ, danh sách, thống kê, tải bản đồ/CSV;
+    không tải dữ liệu GEE, không tải/xóa ảnh, không xem CSDL hay thông tin quản trị.</p>
+  <div class="bang-cuon" style="max-height:260px"><table><thead><tr><th>Tên đăng nhập</th><th>Tên hiển thị</th><th>Vai trò</th><th></th></tr></thead><tbody id="tk-bang"></tbody></table></div>
+  <div class="form-tk">
+    <div><label class="nhan" for="tk-ten">Tên đăng nhập</label><input type="text" id="tk-ten" placeholder="vd. sinhvien01"></div>
+    <div><label class="nhan" for="tk-hien">Tên hiển thị</label><input type="text" id="tk-hien"></div>
+    <div><label class="nhan" for="tk-vt">Vai trò</label><select id="tk-vt"><option value="xem">Người dùng (chỉ xem)</option><option value="admin">Quản trị viên</option></select></div>
+    <div><label class="nhan" for="tk-mk">Mật khẩu <small>(để trống = giữ nguyên)</small></label><input type="password" id="tk-mk" autocomplete="new-password"></div>
+  </div>
+  <div class="hang"><button class="nut chinh" id="tk-luu">Lưu tài khoản</button><span class="ghi-chu" id="tk-tt"></span></div>
+</div></div>
+
+<!-- ================= HỘP THOẠI: ĐỔI MẬT KHẨU ================= -->
+<div class="phong-to" id="hop-mk"><div class="hop hop-thoai" style="width:min(420px,96vw)">
+  <h3>Đổi mật khẩu <button class="x" data-dong="hop-mk" aria-label="Đóng">✕</button></h3>
+  <label class="nhan" for="mk-cu">Mật khẩu hiện tại</label><input type="password" id="mk-cu" autocomplete="current-password">
+  <label class="nhan" for="mk-moi" style="margin-top:10px">Mật khẩu mới (tối thiểu 6 ký tự)</label><input type="password" id="mk-moi" autocomplete="new-password">
+  <div class="hang" style="margin-top:12px"><button class="nut chinh" id="mk-luu">Đổi mật khẩu</button><span class="ghi-chu" id="mk-tt"></span></div>
+</div></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+Chart.defaults.font.family = '"Be Vietnam Pro", "Segoe UI", sans-serif';
+Chart.defaults.color = "#66756f";
+const MAU_MO_HINH = { LR:"#64748b", BAYES_RIDGE:"#0891b2", RF:"#16a34a", XGB:"#ca8a04", LSTM:"#7c3aed", GRU:"#db2777",
+                      TRANSFORMER:"#ea580c", SEASONAL_NAIVE:"#94a3b8" };
+const THU_TU_MH = ["LR","BAYES_RIDGE","RF","XGB","LSTM","GRU","TRANSFORMER","SEASONAL_NAIVE"];
+const TEN_LOAI = { HIEN_TRANG:"Hiện trạng", DU_BAO:"Dự báo", GIA_LAP:"Giả lập" };
+const MAU_LOAI = { HIEN_TRANG:"#3b6fc4", DU_BAO:"#e0823a", GIA_LAP:"#c25a8a" };
+const TEN_CS = { LST:"Nhiệt độ bề mặt (LST)", NDVI:"Chỉ số thực vật (NDVI)", TVDI:"Chỉ số khô hạn (TVDI)" };
+const TEN_CS_HOA = { LST:"NHIỆT ĐỘ BỀ MẶT (LST)", NDVI:"CHỈ SỐ THỰC VẬT (NDVI)", TVDI:"CHỈ SỐ KHÔ HẠN (TVDI)" };
+const CHIEU_XH = { LST:-1, NDVI:1, TVDI:-1 };          // -1: cao → thấp, 1: thấp → cao (theo yêu cầu)
+const S = { tq:null, toi:null, loai:"HIEN_TRANG", moHinh:null, cs:"LST", tanSuat:"THANG", bo:null, boMa:{}, dsKy:[], iKy:0, cacheKy:{}, cacheLop:{},
+            cachePh:{}, ph:null, lop:null, phuongHinh:null, phIdx:{}, chonPh:null, diem:null, chuoi:null, chuoiTen:"",
+            dv:"phuong", cheDo:"2d", thang:"tu_dong", xh:"LST", play:null, moHinhRows:null, kyMuon:null, kho:null, trangKho:0,
+            thangHien:null, bdTT:null, lopGEE:false };
+let LA_ADMIN = false;
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const khongDau = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+const fmtKB = b => b == null ? "–" : b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : (b / 1e3).toFixed(0) + " KB";
+const boTheoMa = ma => S.tq.bo_du_lieu.find(b => b.ma === ma);
+const boTheoId = id => S.tq.bo_du_lieu.find(b => b.id === id);
+
+// ---------- chuyển trang ----------
+const daMo = {};
+function moTab(t) {
+  if (!LA_ADMIN && ["tu-dong", "tai-len", "hieu-nang"].includes(t)) return;
+  $$("nav button").forEach(b => b.classList.toggle("bat", b.dataset.tab === t));
+  $$(".trang").forEach(s => s.classList.toggle("bat", s.id === "trang-" + t));
+  if (t === "ban-do") setTimeout(() => mapGL && mapGL.resize(), 50);
+  if (t === "tai-len") { taiLichSu(); if (banDoXem) setTimeout(() => banDoXem.invalidateSize(), 50); }
+  if (t === "kho" && !daMo.kho) { daMo.kho = 1; taiKho(); }
+  if (t === "danh-gia") veDanhGia();
+  if (t === "chuoi") moChuoi();
+  if (t === "ban-tin") moBanTin();
+  if (t === "tu-dong") moTuDong();
+  if (t === "hieu-nang" && !daMo.hn) { daMo.hn = 1; doHieuNang(); }
+}
+$$("nav button").forEach(b => b.onclick = () => moTab(b.dataset.tab));
+
+async function api(duong, tuyChon) {
+  const r = await fetch(duong, tuyChon); const j = await r.json().catch(() => ({ loi:r.statusText }));
+  if (r.status === 401 && j && j.dang_nhap) { location.href = "/dang-nhap"; throw new Error(j.loi); }
+  if (!r.ok || (j && j.loi && !Array.isArray(j))) throw new Error((j && j.loi) || r.statusText);
+  return j;
+}
+const dangTai = b => { $("#dang-tai").style.display = b ? "block" : "none"; };
+const csInfo = (cs = S.cs) => S.tq.chi_so.find(c => c.ma === cs);
+const donVi = cs => cs === "LST" ? "°C" : "";
+const fmt = (v, cs) => v == null || isNaN(v) ? "–" : (cs === "LST" ? Number(v).toFixed(2) + " °C" : Number(v).toFixed(3));
+const fmtG = (v, cs) => v == null || isNaN(v) ? "–" : (cs === "LST" ? Number(v).toFixed(1) : Number(v).toFixed(3));
+const laNgay = () => !!(S.bo && S.bo.tan_suat === "NGAY");
+const fmtKy = (k, ngay = laNgay()) => !k ? "–" : ngay ? `Ngày ${k.slice(8,10)}/${k.slice(5,7)}/${k.slice(0,4)}` : `Tháng ${k.slice(5,7)}/${k.slice(0,4)}`;
+const kyNgan = (k, ngay = laNgay()) => !k ? "–" : ngay ? `${k.slice(8,10)}/${k.slice(5,7)}/${k.slice(0,4)}` : `${k.slice(5,7)}/${k.slice(0,4)}`;
+const kyThang = k => k ? `${k.slice(5,7)}/${k.slice(0,4)}` : "–";
+const kyNgay = k => k ? `${k.slice(8,10)}/${k.slice(5,7)}` : "–";
+const laBoNgay = ma => { const b = boTheoMa(ma); return !!(b && b.tan_suat === "NGAY"); };
+function khoangBo(b) {
+  if (!b || !b.tu_ky) return "";
+  const n = b.tan_suat === "NGAY";
+  return n ? `${kyNgay(b.tu_ky)}–${kyNgay(b.den_ky)}/${b.den_ky.slice(0,4)}` : `${kyThang(b.tu_ky)}–${kyThang(b.den_ky)}`;
+}
+const hex2rgb = h => { h = h.replace("#",""); return [0,2,4].map(i => parseInt(h.slice(i,i+2),16)); };
+function mauTai(v, vmin, vmax, nut) {
+  let t = (v - vmin) / (vmax - vmin); t = Math.max(0, Math.min(1, isFinite(t) ? t : 0));
+  const p = t * (nut.length - 1), i = Math.min(Math.floor(p), nut.length - 2), f = p - i;
+  return [0,1,2].map(k => Math.round(nut[i][k] + (nut[i+1][k] - nut[i][k]) * f));
+}
+const rgbCss = m => `rgb(${m[0]},${m[1]},${m[2]})`;
+
+function nhanBo(b) {
+  if (!b) return "?";
+  const tl = b.ma.startsWith("TL_") ? " (tải lên)" : "";
+  if (b.loai === "HIEN_TRANG") return b.ma === "HT_GEE_THANG" ? "Hiện trạng (Landsat – GEE)" : (b.ten || b.ma);
+  if (b.loai === "DU_BAO") return b.tan_suat === "NGAY" ? `Dự báo 7 ngày ${khoangBo(b)} (giả lập)`
+                                : `Dự báo ${b.mo_hinh || "?"} · ${khoangBo(b)}${tl}`;
+  return "Giả lập " + (b.kich_ban || "") + tl;
+}
+const tanSuat = b => b.tan_suat || "THANG";
+const dsBoLoai = () => S.tq.bo_du_lieu.filter(b => b.loai === S.loai &&
+  (S.loai !== "DU_BAO" || (b.chi_so_du_bao === S.cs && (tanSuat(b) === "NGAY") === (S.tanSuat === "NGAY"))));
+const moiNhat = ds => ds.slice().sort((a, b) => (b.tu_ky || "").localeCompare(a.tu_ky || "") || b.id - a.id)[0];
+function timBo() {
+  const ds = dsBoLoai();
+  let b = ds.find(x => x.ma === S.boMa[S.loai]);
+  if (!b && S.loai === "DU_BAO" && S.tanSuat === "NGAY") b = moiNhat(ds);
+  if (!b && S.loai === "DU_BAO" && S.moHinh) b = moiNhat(ds.filter(x => x.mo_hinh === S.moHinh && !x.ma.startsWith("TL_"))) || moiNhat(ds.filter(x => x.mo_hinh === S.moHinh));
+  if (!b && S.loai === "HIEN_TRANG") b = ds.find(x => x.ma === "HT_GEE_THANG");
+  return b || ds[0];
+}
+function capNhatNut() {
+  const ds = S.tq.bo_du_lieu;
+  $$("#nhom-loai button").forEach(b => {
+    b.disabled = !ds.some(x => x.loai === b.dataset.loai); b.classList.toggle("bat", b.dataset.loai === S.loai); });
+  $$("#nhom-cs button").forEach(b => {
+    const co = S.loai !== "DU_BAO" || ds.some(x => x.loai === "DU_BAO" && x.chi_so_du_bao === b.dataset.cs);
+    b.disabled = !co; b.classList.toggle("bat", b.dataset.cs === S.cs); });
+  const coNgay = ds.some(x => x.loai === "DU_BAO" && tanSuat(x) === "NGAY");
+  if (!coNgay && S.tanSuat === "NGAY") S.tanSuat = "THANG";
+  $("#khoi-tan-suat").style.display = S.loai === "DU_BAO" ? "" : "none";
+  $$("#nhom-tan-suat button").forEach(b => { b.classList.toggle("bat", b.dataset.ts === S.tanSuat);
+    if (b.dataset.ts === "NGAY") b.disabled = !coNgay; });
+  $("#gc-tan-suat").innerHTML = S.tanSuat === "NGAY"
+    ? "Landsat chụp 16 ngày/lần nên chưa có dữ liệu ngày để huấn luyện: dự báo 7 ngày là <b>giả lập</b> (nội suy dự báo tháng của mô hình AI tốt nhất + dao động thời tiết ngày). Sẽ thay bằng mô hình thật khi tích hợp vệ tinh ngày (MODIS…)."
+    : "Dự báo bằng mô hình AI học từ chuỗi Landsat theo tháng (2015 – nay), 12 tháng kế tiếp.";
+  $("#nhan-ani-tu").textContent = S.loai === "DU_BAO" && S.tanSuat === "NGAY" ? "Từ ngày" : "Từ tháng";
+  $("#nhan-ani-den").textContent = S.loai === "DU_BAO" && S.tanSuat === "NGAY" ? "Đến ngày" : "Đến tháng";
+}
+function veChonBo(bo) {
+  const ds = dsBoLoai().slice().sort((a, b) => S.loai === "DU_BAO"
+    ? (THU_TU_MH.indexOf(a.mo_hinh) - THU_TU_MH.indexOf(b.mo_hinh)) || a.ma.localeCompare(b.ma) : a.ma.localeCompare(b.ma));
+  $("#chon-bo").innerHTML = ds.map(b => `<option value="${esc(b.ma)}">${esc(nhanBo(b))}</option>`).join("") || "<option>Không có dữ liệu</option>";
+  if (bo) $("#chon-bo").value = bo.ma;
+}
+
+// ================= BẢN ĐỒ MAPLIBRE (2D + 3D) =================
+const NEN_DS = {
+  sang:{ tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"], attr:"Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap" },
+  esri:{ tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"], attr:"Tiles © Esri" },
+  anh:{ tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], attr:"Tiles © Esri — Maxar, Earthstar Geographics" },
+  osm:{ tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], attr:"© OpenStreetMap contributors" },
+};
+const RONG = { type:"FeatureCollection", features:[] };
+let mapGL = null, banDoSan = null;
+function taoBanDo() {
+  const sources = {}, layers = [{ id:"nen-mau", type:"background", paint:{ "background-color":"#eef2ee" } }];
+  for (const [k, n] of Object.entries(NEN_DS)) {
+    sources["nen-" + k] = { type:"raster", tiles:n.tiles, tileSize:256, attribution:n.attr, maxzoom:k === "sang" ? 16 : 19 };
+    layers.push({ id:"nen-" + k, type:"raster", source:"nen-" + k, layout:{ visibility:k === "sang" ? "visible" : "none" } });
+  }
+  mapGL = new maplibregl.Map({ container:"map", style:{ version:8, sources, layers }, center:[106.75, 10.82], zoom:8.4,
+    maxPitch:75, attributionControl:{ compact:true }, preserveDrawingBuffer:true, dragRotate:true });
+  mapGL.addControl(new maplibregl.NavigationControl({ visualizePitch:true }), "bottom-right");
+  mapGL.addControl(new maplibregl.ScaleControl({ unit:"metric", maxWidth:120 }), "bottom-right");
+  banDoSan = new Promise(res => mapGL.on("load", res));
+  const popup = new maplibregl.Popup({ closeButton:false, closeOnClick:false, offset:8 });
+  for (const lop of ["phuong-fill", "phuong-3d"]) {
+    mapGL.on("mousemove", lop, e => {
+      if (S.dv !== "phuong" || !e.features.length) return;
+      mapGL.getCanvas().style.cursor = "pointer";
+      const id = e.features[0].id, p = S.phIdx[id]; if (!p) return;
+      const r = (S.ph && S.ph.theoId[id]) || {};
+      popup.setLngLat(e.lngLat).setHTML(`<b>${esc(p.ten)}</b><br>${S.cs}: <b>${fmt(r[S.cs], S.cs)}</b>${r.hang ? ` · hạng ${r.hang}/${S.ph.coDL}` : ""}`).addTo(mapGL);
+    });
+    mapGL.on("mouseleave", lop, () => { mapGL.getCanvas().style.cursor = ""; popup.remove(); });
+    mapGL.on("click", lop, e => { if (S.dv === "phuong" && e.features.length) chonPhuong(e.features[0].id, false); });
+  }
+  mapGL.on("click", e => { if (S.dv === "luoi") taiChuoiDiem(e.lngLat).catch(err => alert(err.message)); });
+}
+function themLopNen() {
+  const m = mapGL;
+  m.addSource("vung", { type:"geojson", data:RONG });
+  m.addSource("phuong", { type:"geojson", data:S.phuongHinh || RONG, promoteId:"id" });
+  m.addSource("luoi-anh", { type:"image", url:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+                            coordinates:[[106,11],[107,11],[107,10],[106,10]] });
+  m.addSource("luoi-3d", { type:"geojson", data:RONG });
+  m.addSource("tim", { type:"geojson", data:RONG });
+  m.addSource("diem", { type:"geojson", data:RONG });
+  m.addLayer({ id:"luoi-anh-lop", type:"raster", source:"luoi-anh", layout:{ visibility:"none" },
+               paint:{ "raster-resampling":"nearest", "raster-opacity":0.88, "raster-fade-duration":0 } });
+  m.addLayer({ id:"phuong-fill", type:"fill", source:"phuong", paint:{ "fill-color":"#d9dfdb", "fill-opacity":0.88 } });
+  m.addLayer({ id:"luoi-3d-lop", type:"fill-extrusion", source:"luoi-3d", layout:{ visibility:"none" },
+               paint:{ "fill-extrusion-color":"#999", "fill-extrusion-height":0, "fill-extrusion-opacity":0.95 } });
+  m.addLayer({ id:"phuong-3d", type:"fill-extrusion", source:"phuong", layout:{ visibility:"none" },
+               paint:{ "fill-extrusion-color":"#d9dfdb", "fill-extrusion-height":0, "fill-extrusion-opacity":0.93 } });
+  m.addLayer({ id:"phuong-vien", type:"line", source:"phuong", paint:{ "line-color":"#5f6f69", "line-width":["interpolate",["linear"],["zoom"],8,0.35,12,1.1], "line-opacity":0.7 } });
+  m.addLayer({ id:"vung-vien", type:"line", source:"vung", paint:{ "line-color":"#7a2a1f", "line-width":1.6, "line-opacity":0.8 } });
+  m.addLayer({ id:"phuong-chon", type:"line", source:"phuong", filter:["==", ["id"], -1], paint:{ "line-color":"#111827", "line-width":3 } });
+  m.addLayer({ id:"tim-vien", type:"line", source:"tim", paint:{ "line-color":"#111827", "line-width":2.2, "line-dasharray":[2, 1.5] } });
+  m.addSource("nen-sang-nhan", { type:"raster", tileSize:256, maxzoom:16,
+    tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"] });
+  m.addLayer({ id:"nen-sang-nhan", type:"raster", source:"nen-sang-nhan", paint:{ "raster-opacity":0.9 } });   // tên địa danh nằm trên lớp màu
+  m.addLayer({ id:"diem-lop", type:"circle", source:"diem", paint:{ "circle-radius":6, "circle-color":"#fff", "circle-stroke-color":"#111827", "circle-stroke-width":2.5 } });
+}
+
+// ---------- thang màu ----------
+function thangMau(cs, ds) {
+  const c = csInfo(cs);
+  if (S.thang === "co_dinh" || !ds || ds.length < 3) return { vmin:c.vmin, vmax:c.vmax };
+  const a = ds.filter(v => v != null && isFinite(v)).sort((x, y) => x - y);
+  if (a.length < 3) return { vmin:c.vmin, vmax:c.vmax };
+  let lo = a[Math.floor(0.02 * (a.length - 1))], hi = a[Math.ceil(0.98 * (a.length - 1))];
+  if (hi - lo < 1e-6) { lo -= 0.5; hi += 0.5; }
+  const buoc = cs === "LST" ? 0.5 : 0.01;
+  return { vmin:Math.floor(lo / buoc) * buoc, vmax:Math.ceil(hi / buoc) * buoc };
+}
+function bieuThucMau(src, vmin, vmax, mau) {
+  const e = ["interpolate", ["linear"], src];
+  mau.forEach((m, i) => e.push(vmin + (vmax - vmin) * i / (mau.length - 1), m));
+  return e;
+}
+function veChuGiai() {
+  const c = csInfo(), t = S.thangHien || { vmin:c.vmin, vmax:c.vmax };
+  $("#chu-giai").style.background = `linear-gradient(to right, ${c.mau.join(",")})`;
+  $("#cg-min").textContent = fmtG(t.vmin, S.cs); $("#cg-max").textContent = fmtG(t.vmax, S.cs);
+  $("#cg-giua").textContent = fmtG((t.vmin + t.vmax) / 2, S.cs);
+  $("#cg-ten").textContent = `${TEN_CS[S.cs]}${S.cs === "LST" ? " – °C" : ""} · ${S.dv === "phuong" ? "trung bình theo phường/xã" : "ô lưới 500 m"}`;
+  $("#cg-loc").style.display = locDangBat() ? "" : "none";
+}
+
+// ---------- lọc ngưỡng ----------
+function dieuKien() {
+  return ["LST","NDVI","TVDI"].filter(cs => $(`#ng-${cs}-bat`).checked)
+    .map(cs => ({ cs, dk:$(`#ng-${cs}-dk`).value, gt:parseFloat($(`#ng-${cs}-gt`).value) })).filter(d => isFinite(d.gt));
+}
+const locDangBat = () => dieuKien().length > 0;
+function thoa(r, chiCs) {
+  for (const d of dieuKien()) {
+    if (chiCs && d.cs !== chiCs) continue;
+    const v = r[d.cs]; if (v == null) return false;
+    if (d.dk === "gt" ? !(v > d.gt) : !(v < d.gt)) return false;
+  }
+  return true;
+}
+function moTaDK() {
+  return dieuKien().map(d => `${d.cs} ${d.dk === "gt" ? ">" : "<"} ${d.cs === "LST" ? d.gt + " °C" : d.gt}`).join(" và ");
+}
+
+// ---------- chọn bộ dữ liệu / tháng ----------
+async function chonBo() {
+  capNhatNut();
+  const bo = timBo(); S.bo = bo; veChonBo(bo);
+  if (bo && S.loai === "DU_BAO") S.moHinh = bo.mo_hinh;
+  if (!bo) { $("#ky-hien").textContent = "Không có dữ liệu"; return; }
+  const kyCu = S.kyMuon || S.dsKy[S.iKy]; S.kyMuon = null;
+  const khoaKy = `${bo.id}|${S.cs}`;
+  if (!S.cacheKy[khoaKy]) S.cacheKy[khoaKy] = await api(`/api/ky?bo=${bo.id}&cs=${S.cs}`);
+  const dsk = S.cacheKy[khoaKy];
+  const dsCu = S.dsKy.join();
+  S.dsKy = dsk.map(r => r.ky);
+  S.phuKy = Object.fromEntries(dsk.map(r => [r.ky, r.so_o && r.tong_o ? r.so_o / r.tong_o : null]));
+  let i = S.dsKy.indexOf(kyCu);
+  if (i < 0) {
+    i = S.loai === "HIEN_TRANG" ? S.dsKy.length - 1 : 0;
+    if (S.loai === "HIEN_TRANG") {                       // mặc định: tháng gần nhất phủ ≥ 90% diện tích
+      const maxPhu = Math.max(0, ...Object.values(S.phuKy).map(v => v || 0));
+      for (let k = S.dsKy.length - 1; k >= 0; k--) {
+        if ((S.phuKy[S.dsKy[k]] || 0) >= 0.9 * maxPhu && maxPhu > 0) { i = k; break; } }
+    }
+  }
+  S.iKy = Math.max(0, i);
+  $("#thanh-ky").max = Math.max(0, S.dsKy.length - 1); $("#thanh-ky").value = S.iKy;
+  if (dsCu !== S.dsKy.join()) {
+    const op = S.dsKy.map((k, j) => `<option value="${j}">${kyNgan(k)}</option>`).join("");
+    $("#ani-tu").innerHTML = op; $("#ani-den").innerHTML = op;
+    $("#ani-den").value = S.dsKy.length - 1;
+    $("#ani-tu").value = S.loai === "HIEN_TRANG" ? Math.max(0, S.dsKy.length - 12) : 0;
+  }
+  await capNhatKy();
+}
+
+async function capNhatKy(nhanh) {
+  const ky = S.dsKy[S.iKy];
+  const phu = S.phuKy ? S.phuKy[ky] : null;
+  $("#ky-hien").innerHTML = fmtKy(ky) + (laNgay() ? ` <small>Dự báo ngày – GIẢ LẬP minh họa (chưa có vệ tinh ngày)</small>`
+    : phu != null && S.loai === "HIEN_TRANG" ? ` <small>${Math.round(100 * phu)}% diện tích có ảnh (phần còn lại bị mây che)</small>` : "");
+  $("#nhan-ky").innerHTML = `${S.cs} · ${fmtKy(ky)} · ${esc(nhanBo(S.bo))}${laNgay() ? '<span class="nhan-gl">GIẢ LẬP</span>' : ""}`;
+  $("#ds-ky").textContent = kyNgan(ky);
+  if (!S.bo || !ky) return;
+  $("#nut-tai-tif").href = `/api/tai_ve?bo=${S.bo.id}&cs=${S.cs}&ky=${ky}`;
+  dangTai(true);
+  try {
+    await Promise.all([taiPhuong(ky), S.dv === "luoi" ? taiLop(ky) : null]);
+    veTatCa(nhanh);
+    if ($("#bat-gee").checked && !nhanh) veGEE();
+    if (!nhanh) { if (S.chonPh != null) moTheTT(S.chonPh); else if (S.diem && S.dv === "luoi") taiChuoiDiem(S.diem); }
+  } catch (e) { if (!S.play) alert("Lỗi tải dữ liệu: " + e.message); else console.warn(e); }
+  dangTai(false);
+}
+
+async function taiPhuong(ky) {
+  const khoa = `${S.bo.id}|${ky}`;
+  if (!S.cachePh[khoa]) S.cachePh[khoa] = await api(`/api/phuong?bo=${S.bo.id}&ky=${ky}`);
+  const d = S.cachePh[khoa];
+  const theoId = {}; d.rows.forEach(r => theoId[r.id] = r);
+  S.ph = { ...d, theoId };
+}
+async function taiLop(ky) {
+  const khoa = `${S.bo.id}|${S.cs}|${ky}`;
+  if (!S.cacheLop[khoa]) S.cacheLop[khoa] = await api(`/api/lop?bo=${S.bo.id}&cs=${S.cs}&ky=${ky}`);
+  S.lop = S.cacheLop[khoa];
+}
+
+// xếp hạng + cờ thỏa ngưỡng cho từng phường
+function tinhHang() {
+  if (!S.ph) return;
+  const ds = Object.values(S.ph.theoId);
+  for (const cs of ["LST","NDVI","TVDI"]) {
+    const co = ds.filter(r => r[cs] != null).sort((a, b) => CHIEU_XH[cs] * (a[cs] - b[cs]));
+    co.forEach((r, i) => r["hang_" + cs] = i + 1);
+    ds.filter(r => r[cs] == null).forEach(r => r["hang_" + cs] = null);
+  }
+  ds.forEach(r => { r.hang = r["hang_" + S.cs]; r.ok = thoa(r); });
+  S.ph.coDL = ds.filter(r => r[S.cs] != null).length;
+}
+
+function veTatCa(nhanh) {
+  tinhHang();
+  const c = csInfo();
+  if (S.dv === "phuong") S.thangHien = thangMau(S.cs, Object.values(S.ph.theoId).map(r => r[S.cs]));
+  else S.thangHien = thangMau(S.cs, S.lop ? S.lop.v.filter(v => v !== null) : []);
+  const { vmin, vmax } = S.thangHien;
+  const m = mapGL, dam = $("#do-dam").value / 100, H = +$("#do-cao-3d").value;
+  // --- phường: trạng thái từng phường (giữ nguyên hình học → animation mượt)
+  for (const f of S.phuongHinh.features) {
+    const r = S.ph.theoId[f.id];
+    m.setFeatureState({ source:"phuong", id:f.id }, { v:r && r[S.cs] != null ? r[S.cs] : null, ok:r ? r.ok : false });
+  }
+  const mauPh = ["case", ["==", ["feature-state", "v"], null], "#d9dfdb", ["==", ["feature-state", "ok"], false], "#eef1ef",
+                 bieuThucMau(["feature-state", "v"], vmin, vmax, c.mau)];
+  m.setPaintProperty("phuong-fill", "fill-color", mauPh);
+  m.setPaintProperty("phuong-fill", "fill-opacity", dam);
+  m.setPaintProperty("phuong-3d", "fill-extrusion-color", mauPh);
+  const tl = ["max", 0, ["min", 1, ["/", ["-", ["coalesce", ["feature-state", "v"], vmin], vmin], Math.max(vmax - vmin, 1e-6)]]];
+  m.setPaintProperty("phuong-3d", "fill-extrusion-height",
+    ["case", ["==", ["feature-state", "v"], null], 0, ["==", ["feature-state", "ok"], false], 40, ["+", 150, ["*", tl, H * 1100]]]);
+  // --- ô lưới
+  if (S.dv === "luoi" && S.lop) veLuoi(vmin, vmax, dam, H);
+  hienLop();
+  veChuGiai(); veThongKe();
+  veDanhSach();
+  if (S.chonPh != null) m.setFilter("phuong-chon", ["==", ["id"], S.chonPh]);
+}
+
+function veLuoi(vmin, vmax, dam, H) {
+  const d = S.lop, c = csInfo(), nut = c.mau.map(hex2rgb);
+  const [[s, w], [n, e]] = d.bounds, dx = (e - w) / d.w, dy = (n - s) / d.h;
+  if (S.cheDo === "2d") {
+    const cv = document.createElement("canvas"); cv.width = d.w; cv.height = d.h;
+    const ctx = cv.getContext("2d"), anh = ctx.createImageData(d.w, d.h);
+    for (let k = 0; k < d.v.length; k++) {
+      const v = d.v[k]; if (v === null) continue;
+      const ok = thoa({ [S.cs]:v }, S.cs);
+      const mm = ok ? mauTai(v, vmin, vmax, nut) : [238, 241, 239];
+      anh.data[4*k] = mm[0]; anh.data[4*k+1] = mm[1]; anh.data[4*k+2] = mm[2]; anh.data[4*k+3] = 255;
+    }
+    ctx.putImageData(anh, 0, 0);
+    mapGL.getSource("luoi-anh").updateImage({ url:cv.toDataURL(), coordinates:[[w, n], [e, n], [e, s], [w, s]] });
+    mapGL.setPaintProperty("luoi-anh-lop", "raster-opacity", dam);
+  } else {
+    const fs = [];
+    for (let k = 0; k < d.v.length; k++) {
+      const v = d.v[k]; if (v === null) continue;
+      const hang = Math.floor(k / d.w), cot = k % d.w, x0 = w + cot * dx, y0 = n - hang * dy;
+      fs.push({ type:"Feature", properties:{ v, ok:thoa({ [S.cs]:v }, S.cs) ? 1 : 0 },
+                geometry:{ type:"Polygon", coordinates:[[[x0, y0], [x0 + dx, y0], [x0 + dx, y0 - dy], [x0, y0 - dy], [x0, y0]]] } });
+    }
+    mapGL.getSource("luoi-3d").setData({ type:"FeatureCollection", features:fs });
+    const tl = ["max", 0, ["min", 1, ["/", ["-", ["get", "v"], vmin], Math.max(vmax - vmin, 1e-6)]]];
+    mapGL.setPaintProperty("luoi-3d-lop", "fill-extrusion-color", ["case", ["==", ["get", "ok"], 0], "#eef1ef", bieuThucMau(["get", "v"], vmin, vmax, c.mau)]);
+    mapGL.setPaintProperty("luoi-3d-lop", "fill-extrusion-height", ["case", ["==", ["get", "ok"], 0], 20, ["+", 60, ["*", tl, H * 700]]]);
+  }
+}
+
+function hienLop() {
+  const m = mapGL, hien = (id, b) => m.setLayoutProperty(id, "visibility", b ? "visible" : "none");
+  const ph = S.dv === "phuong", d3 = S.cheDo === "3d";
+  hien("phuong-fill", ph && !d3);
+  hien("phuong-3d", ph && d3);
+  hien("luoi-anh-lop", !ph && !d3);
+  hien("luoi-3d-lop", !ph && d3);
+  hien("phuong-vien", $("#bat-ranh-gioi").checked);
+  hien("diem-lop", !ph);
+}
+
+// ---------- thống kê bên trái ----------
+function veThongKe() {
+  const caps = S.tq.nguong.filter(n => n.chi_so === S.cs);
+  if (S.dv === "phuong") {
+    const ds = Object.values(S.ph.theoId).filter(r => r[S.cs] != null).map(r => r[S.cs]);
+    $("#tk-so-nhan").textContent = "Phường/xã có dữ liệu";
+    if (!ds.length) { ["tb","so","min","max"].forEach(x => $("#tk-"+x).textContent = "–"); $("#ds-cap").innerHTML = ""; return; }
+    $("#tk-tb").textContent = fmt(ds.reduce((a, b) => a + b, 0) / ds.length, S.cs);
+    $("#tk-so").textContent = `${ds.length}/${S.phuongHinh.features.length}`;
+    $("#tk-min").textContent = fmt(Math.min(...ds), S.cs); $("#tk-max").textContent = fmt(Math.max(...ds), S.cs);
+    const dem = caps.map(n => ds.filter(v => (n.tu == null || v >= n.tu) && (n.den == null || v < n.den)).length);
+    $("#ds-cap").innerHTML = caps.length ? `<span class="nhan" style="margin-top:4px">Số phường/xã theo cấp</span>` + caps.map((n, i) => {
+      const pt = 100 * dem[i] / ds.length;
+      return `<div class="cap"><i style="background:${n.ma_mau}"></i><span>${esc(n.ten_cap)}</span><span style="text-align:right">${dem[i]}</span>
+              <span></span><div class="thanh"><u style="width:${pt}%;background:${n.ma_mau}"></u></div><span style="text-align:right;color:var(--phu)">${pt.toFixed(0)}%</span></div>`; }).join("") : "";
+  } else {
+    const hl = S.lop ? S.lop.v.filter(v => v !== null) : [];
+    $("#tk-so-nhan").textContent = "Số ô có dữ liệu";
+    if (!hl.length) { ["tb","so","min","max"].forEach(x => $("#tk-"+x).textContent = "–"); $("#ds-cap").innerHTML = `<div class="ghi-chu">Tháng này không có dữ liệu ${S.cs}.</div>`; return; }
+    let mn = Infinity, mx = -Infinity, tong = 0; for (const v of hl) { mn = Math.min(mn, v); mx = Math.max(mx, v); tong += v; }
+    $("#tk-tb").textContent = fmt(tong / hl.length, S.cs); $("#tk-so").textContent = hl.length.toLocaleString("vi-VN");
+    $("#tk-min").textContent = fmt(mn, S.cs); $("#tk-max").textContent = fmt(mx, S.cs);
+    const km2 = S.lop.res * S.lop.res / 1e6;
+    const dem = caps.map(n => hl.filter(v => (n.tu == null || v >= n.tu) && (n.den == null || v < n.den)).length);
+    $("#ds-cap").innerHTML = caps.length ? `<span class="nhan" style="margin-top:4px">Diện tích theo cấp</span>` + caps.map((n, i) => {
+      const pt = 100 * dem[i] / hl.length;
+      return `<div class="cap"><i style="background:${n.ma_mau}"></i><span>${esc(n.ten_cap)}</span><span style="text-align:right">${pt.toFixed(1)}%</span>
+              <span></span><div class="thanh"><u style="width:${pt}%;background:${n.ma_mau}"></u></div><span style="text-align:right;color:var(--phu)">${Math.round(dem[i]*km2).toLocaleString("vi-VN")} km²</span></div>`; }).join("") : "";
+  }
+  const loc = locDangBat();
+  $("#ket-loc").style.display = loc ? "block" : "none";
+  if (loc) {
+    const n = Object.values(S.ph.theoId).filter(r => r.ok).length;
+    $("#ket-loc").innerHTML = `<b>${n}</b>/${S.phuongHinh.features.length} phường/xã thỏa: ${esc(moTaDK())}` +
+      (S.dv === "luoi" ? `<br><small>Ô lưới: chỉ lọc theo chỉ số đang xem (${S.cs}).</small>` : "");
+  }
+}
+
+// ---------- danh sách 167 phường ----------
+function dongDanhSach() {
+  const cs = S.xh, q = khongDau($("#ds-tim").value.trim()), loc = locDangBat();
+  const ds = S.phuongHinh.features.map(f => ({ id:f.id, ten:f.properties.ten, ...(S.ph ? S.ph.theoId[f.id] : {}) }));
+  ds.sort((a, b) => (a[cs] == null) - (b[cs] == null) || CHIEU_XH[cs] * ((a[cs] ?? 0) - (b[cs] ?? 0)) || a.ten.localeCompare(b.ten, "vi"));
+  return ds.filter(r => (!q || khongDau(r.ten).includes(q)) && (!loc || r.ok));
+}
+function veDanhSach() {
+  if (!S.phuongHinh) return;
+  const cs = S.xh, ds = dongDanhSach(), t = S.thangHien, nut = csInfo().mau.map(hex2rgb);
+  $$("#tab-xh button").forEach(b => b.classList.toggle("bat", b.dataset.xh === cs));
+  const loc = locDangBat();
+  $("#ds-dem").textContent = loc ? `${ds.length}/${S.phuongHinh.features.length} phường/xã thỏa ngưỡng` : `${ds.length} phường/xã`;
+  $("#ds-tong").textContent = S.phuongHinh.features.length;
+  const o = v => v == null ? "–" : (v).toFixed(cs === "LST" ? 2 : 3);
+  const cot = c => (v, cs2) => v == null ? "–" : Number(v).toFixed(cs2 === "LST" ? 2 : 3);
+  $("#ds-than").innerHTML = `<table><thead><tr><th>#</th><th>Phường / xã</th><th>LST (°C)</th><th>NDVI</th><th>TVDI</th></tr></thead><tbody>${
+    ds.map(r => `<tr data-id="${r.id}" class="${r.id === S.chonPh ? "chon" : ""}"><td>${r["hang_" + cs] ?? "–"}</td>
+      <td>${r[S.cs] != null && t ? `<span class="o-mau" style="background:${rgbCss(mauTai(r[S.cs], t.vmin, t.vmax, nut))}"></span>` : `<span class="o-mau" style="background:#d9dfdb"></span>`}${esc(r.ten)}</td>
+      ${["LST","NDVI","TVDI"].map(c => `<td class="${c === cs ? "sx" : ""}">${cot(c)(r[c], c)}</td>`).join("")}</tr>`).join("")
+  }</tbody></table>` + (ds.length ? "" : `<div class="ghi-chu" style="padding:14px">Không có phường/xã nào thỏa điều kiện.</div>`);
+  $$("#ds-than tr[data-id]").forEach(tr => tr.onclick = () => chonPhuong(+tr.dataset.id, true));
+}
+$$("#tab-xh button").forEach(b => b.onclick = () => {          // đổi bảng xếp hạng → bản đồ đổi theo chỉ số đó
+  S.xh = b.dataset.xh;
+  if (S.cs !== S.xh && !$(`#nhom-cs button[data-cs="${S.xh}"]`).disabled) { S.cs = S.xh; if (S.loai === "DU_BAO") S.boMa.DU_BAO = null; chonBo(); }
+  else veDanhSach(); });
+$("#ds-tim").oninput = veDanhSach;
+$("#ds-csv").onclick = () => {
+  const ds = dongDanhSach(), ky = S.dsKy[S.iKy];
+  const dong = [`Hạng (${S.xh} ${CHIEU_XH[S.xh] < 0 ? "cao→thấp" : "thấp→cao"}),Phường/xã,LST (°C),NDVI,TVDI,Số ô LST,Tháng,Bộ dữ liệu` + (locDangBat() ? ",Điều kiện lọc" : ""),
+    ...ds.map(r => [r["hang_" + S.xh] ?? "", `"${r.ten}"`, r.LST ?? "", r.NDVI ?? "", r.TVDI ?? "", r.LST_n ?? "", ky.slice(0, 7), `"${nhanBo(S.bo)}"`]
+      .concat(locDangBat() ? [`"${moTaDK()}"`] : []).join(","))];
+  taiVe(new Blob(["﻿" + dong.join("\n")], { type:"text/csv" }), `danh_sach_phuong_${S.xh}_${ky.slice(0, 7)}.csv`);
+};
+function taiVe(blob, ten) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = ten; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+
+// ---------- chọn phường: định vị + thẻ thông tin + chuỗi thời gian ----------
+function khungBao(g) {
+  let w = 180, s = 90, e = -180, n = -90;
+  const duyet = c => { if (typeof c[0] === "number") { w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); } else c.forEach(duyet); };
+  duyet(g.coordinates); return [[w, s], [e, n]];
+}
+function chonPhuong(id, bay) {
+  S.chonPh = id; S.diem = null;
+  mapGL.setFilter("phuong-chon", ["==", ["id"], id]);
+  mapGL.getSource("diem").setData(RONG);
+  const p = S.phIdx[id];
+  if (bay && p) mapGL.fitBounds(p.bbox, { padding:80, maxZoom:13.5, pitch:S.cheDo === "3d" ? 55 : 0, duration:900 });
+  $$("#ds-than tr").forEach(tr => tr.classList.toggle("chon", +tr.dataset.id === id));
+  const tr = $(`#ds-than tr[data-id="${id}"]`); if (tr && !bay) tr.scrollIntoView({ block:"nearest" });
+  moTheTT(id);
+}
+async function moTheTT(id) {
+  const p = S.phIdx[id]; if (!p) return;
+  const r = (S.ph && S.ph.theoId[id]) || {};
+  $("#the-tt").style.display = "block";
+  $("#tt-ten").innerHTML = `${esc(p.ten)}<small>${fmtKy(S.dsKy[S.iKy])} · ${esc(nhanBo(S.bo))} · ${p.dt ? p.dt + " km²" : ""} · ${p.so_o} ô lưới</small>`;
+  $("#tt-ba").innerHTML = ["LST","NDVI","TVDI"].map(cs => `<div>${cs}<b>${fmt(r[cs], cs)}</b>${r["hang_" + cs] ? `hạng ${r["hang_" + cs]}/${Object.values(S.ph.theoId).filter(x => x[cs] != null).length}` : "&nbsp;"}</div>`).join("");
+  if (S.play) return;
+  const rows = await api(`/api/phuong/chuoi?id=${id}&cs=${S.cs}`);
+  S.chuoi = rows; S.chuoiTen = p.ten;
+  veBieuDoTT(rows.map(x => ({ bo:x.bo, loai:x.loai, ky:x.ky, v:x.tb })), `Trung bình ${S.cs} của phường theo tháng`);
+}
+async function taiChuoiDiem(ll) {
+  S.diem = ll; S.chonPh = null; mapGL.setFilter("phuong-chon", ["==", ["id"], -1]);
+  mapGL.getSource("diem").setData({ type:"FeatureCollection", features:[{ type:"Feature", geometry:{ type:"Point", coordinates:[ll.lng, ll.lat] }, properties:{} }] });
+  const rows = await api(`/api/chuoi?lon=${ll.lng}&lat=${ll.lat}&cs=${S.cs}`);
+  $("#the-tt").style.display = "block";
+  if (!rows.length) { $("#tt-ten").innerHTML = `Điểm ${ll.lat.toFixed(4)}°N, ${ll.lng.toFixed(4)}°E<small>nằm ngoài vùng nghiên cứu</small>`; $("#tt-ba").innerHTML = ""; return; }
+  const hien = rows.find(r => S.bo && r.bo_du_lieu === S.bo.ma && r.ky === S.dsKy[S.iKy]);
+  $("#tt-ten").innerHTML = `Ô lưới tại ${ll.lat.toFixed(4)}°N, ${ll.lng.toFixed(4)}°E<small>${fmtKy(S.dsKy[S.iKy])} · ${esc(nhanBo(S.bo))}</small>`;
+  $("#tt-ba").innerHTML = `<div style="grid-column:1/-1">${S.cs} tại ô này<b>${hien ? fmt(hien.gia_tri, S.cs) : "không có dữ liệu (mây)"}</b></div>`;
+  S.chuoi = rows; S.chuoiTen = `${ll.lat.toFixed(4)}_${ll.lng.toFixed(4)}`;
+  veBieuDoTT(rows.map(x => ({ bo:x.bo_du_lieu, loai:x.loai, ky:x.ky, v:x.gia_tri })), `${S.cs} tại ô lưới`);
+}
+function veBieuDoTT(rows, ghi) {
+  $("#tt-ghi").textContent = ghi;
+  rows = rows.filter(r => !laBoNgay(r.bo) && !laBoNgay(r.bo_du_lieu));      // biểu đồ theo THÁNG; dự báo ngày xem ở Bản tin
+  const theoBo = {};
+  rows.forEach(r => { (theoBo[r.bo] ||= { loai:r.loai, d:{} }).d[r.ky] = r.v; });
+  const tatCa = [...new Set(rows.map(r => r.ky))].sort();
+  const moc = tatCa.length > 60 ? tatCa[tatCa.length - 60] : tatCa[0];
+  const nhan = tatCa.filter(k => k >= moc);
+  const mau = (ma, loai) => { const b = boTheoMa(ma);
+    if (loai === "HIEN_TRANG") return ma === "HT_GEE_THANG" ? MAU_LOAI.HIEN_TRANG : "#0891b2";
+    if (loai === "GIA_LAP") return MAU_LOAI.GIA_LAP;
+    return MAU_MO_HINH[b && b.mo_hinh] || "#888"; };
+  const ds = Object.entries(theoBo).map(([ma, o]) => ({
+    label:(nhanBo(boTheoMa(ma)) || ma).replace("Hiện trạng (Landsat – GEE)", "Hiện trạng"), data:nhan.map(k => o.d[k] ?? null),
+    borderColor:mau(ma, o.loai), backgroundColor:mau(ma, o.loai), borderDash:o.loai === "HIEN_TRANG" ? [] : o.loai === "DU_BAO" ? [5,3] : [2,2],
+    borderWidth:o.loai === "HIEN_TRANG" ? 2 : 1.5, pointRadius:o.loai === "HIEN_TRANG" ? 1.5 : 1.5, spanGaps:o.loai !== "HIEN_TRANG" }));
+  if (S.bdTT) S.bdTT.destroy();
+  S.bdTT = new Chart($("#tt-bd"), { type:"line", data:{ labels:nhan.map(k => kyThang(k)), datasets:ds },
+    options:{ responsive:true, maintainAspectRatio:false, animation:false, interaction:{ mode:"index", intersect:false },
+      plugins:{ legend:{ position:"bottom", labels:{ boxWidth:9, font:{ size:9.5 } } } },
+      scales:{ x:{ ticks:{ font:{ size:9.5 }, maxRotation:0, autoSkip:true, maxTicksLimit:8 } }, y:{ ticks:{ font:{ size:9.5 } } } } } });
+}
+$("#tt-dong").onclick = () => { $("#the-tt").style.display = "none"; S.chonPh = null; S.diem = null;
+  mapGL.setFilter("phuong-chon", ["==", ["id"], -1]); mapGL.getSource("diem").setData(RONG); $$("#ds-than tr.chon").forEach(t => t.classList.remove("chon")); };
+$("#tt-csv").onclick = () => {
+  if (!S.chuoi) return;
+  const la = S.chuoi[0] && "tb" in S.chuoi[0];
+  const dong = ["ky,bo_du_lieu,loai,chi_so,gia_tri", ...S.chuoi.map(r => [r.ky, la ? r.bo : r.bo_du_lieu, r.loai, S.cs, la ? r.tb : r.gia_tri].join(","))];
+  taiVe(new Blob(["﻿" + dong.join("\n")], { type:"text/csv" }), `chuoi_${S.cs}_${khongDau(S.chuoiTen).replace(/[^a-z0-9.]+/g, "_")}.csv`);
+};
+
+// ---------- lớp GEE trực tiếp (chỉ admin) ----------
+async function veGEE() {
+  const m = mapGL;
+  if (m.getLayer("gee-lop")) m.removeLayer("gee-lop");
+  if (m.getSource("gee")) m.removeSource("gee");
+  if (!$("#bat-gee").checked) return;
+  const ky = S.dsKy[S.iKy]; if (!ky) return;
+  try {
+    const r = await api(`/api/gee?cs=${S.cs}&ky=${ky}`);
+    m.addSource("gee", { type:"raster", tiles:[r.url], tileSize:256, attribution:"Google Earth Engine" });
+    m.addLayer({ id:"gee-lop", type:"raster", source:"gee", paint:{ "raster-opacity":0.9 } }, "phuong-vien");
+  } catch (e) { alert(e.message); $("#bat-gee").checked = false; }
+}
+
+// ---------- tìm phường ----------
+async function goiYTim() {
+  const q = khongDau($("#o-tim").value.trim()), hop = $("#goi-y");
+  if (!q || !S.phuongHinh) { hop.style.display = "none"; return; }
+  const kq = S.phuongHinh.features.filter(f => khongDau(f.properties.ten).includes(q))
+    .sort((a, b) => a.properties.ten.length - b.properties.ten.length).slice(0, 10);
+  hop.innerHTML = kq.length ? kq.map((f, i) => { const r = S.ph && S.ph.theoId[f.id];
+      return `<div data-id="${f.id}" class="${i === 0 ? "chon" : ""}"><span>${esc(f.properties.ten)}</span><small>${r ? `${S.cs} ${fmt(r[S.cs], S.cs)}` : ""}</small></div>`; }).join("")
+    : `<div><small>Không tìm thấy “${esc($("#o-tim").value)}”</small></div>`;
+  hop.style.display = "block";
+  hop.querySelectorAll("div[data-id]").forEach(el => el.onclick = () => {
+    hop.style.display = "none"; const f = S.phIdx[+el.dataset.id]; $("#o-tim").value = f.ten;
+    if (S.dv !== "phuong") { mapGL.getSource("tim").setData(S.phuongHinh.features.find(x => x.id === +el.dataset.id)); mapGL.fitBounds(f.bbox, { padding:80, maxZoom:13.5 }); }
+    else chonPhuong(+el.dataset.id, true);
+  });
+}
+$("#o-tim").oninput = goiYTim;
+$("#o-tim").onkeydown = e => {
+  if (e.key === "Enter") { const el = $("#goi-y div.chon[data-id]"); if (el) el.click(); }
+  if (e.key === "Escape") $("#goi-y").style.display = "none";
+};
+
+// ---------- sự kiện ----------
+function moHinhTotNhat(cs) {
+  const rows = (S.moHinhRows || []).filter(r => r.chi_so === cs && r.rmse != null && r.mo_hinh !== "MO_PHONG_NGAY").sort((a, c) => (a.tap === "TEST" ? 0 : 1) - (c.tap === "TEST" ? 0 : 1) || a.rmse - c.rmse);
+  return rows.length ? rows[0].mo_hinh : null;
+}
+$$("#nhom-loai button").forEach(b => b.onclick = () => {
+  dungChay(); S.loai = b.dataset.loai;
+  if (S.loai === "DU_BAO" && !S.moHinh) S.moHinh = moHinhTotNhat(S.cs);
+  chonBo();
+});
+$("#chon-bo").onchange = e => { dungChay(); S.boMa[S.loai] = e.target.value; const b = boTheoMa(e.target.value); if (b && b.mo_hinh) S.moHinh = b.mo_hinh; chonBo(); };
+$$("#nhom-tan-suat button").forEach(b => b.onclick = () => {
+  if (b.disabled) return; dungChay(); S.tanSuat = b.dataset.ts; S.boMa.DU_BAO = null; chonBo(); });
+$$("#nhom-cs button").forEach(b => b.onclick = () => { S.cs = b.dataset.cs; S.xh = S.cs; if (S.loai === "DU_BAO") S.boMa.DU_BAO = null; chonBo(); });
+$("#thanh-ky").oninput = e => { S.iKy = +e.target.value; capNhatKy(); };
+$$("#nhom-don-vi button").forEach(b => b.onclick = async () => {
+  S.dv = b.dataset.dv; $$("#nhom-don-vi button").forEach(x => x.classList.toggle("bat", x === b));
+  if (S.dv === "luoi") { $("#the-tt").style.display = "none"; S.chonPh = null; mapGL.setFilter("phuong-chon", ["==", ["id"], -1]); }
+  else { mapGL.getSource("diem").setData(RONG); mapGL.getSource("tim").setData(RONG); }
+  await capNhatKy();
+});
+$$("#nhom-thang button").forEach(b => b.onclick = () => { S.thang = b.dataset.th; $$("#nhom-thang button").forEach(x => x.classList.toggle("bat", x === b)); veTatCa(); });
+$$("#nhom-2d3d button").forEach(b => b.onclick = () => {
+  S.cheDo = b.dataset.cheDo; $$("#nhom-2d3d button").forEach(x => x.classList.toggle("bat", x === b));
+  mapGL.easeTo(S.cheDo === "3d" ? { pitch:58, bearing:-18, duration:900 } : { pitch:0, bearing:0, duration:700 });
+  veTatCa();
+});
+$("#do-cao-3d").oninput = () => veTatCa(true);
+$("#do-dam").oninput = () => { const d = $("#do-dam").value / 100;
+  mapGL.setPaintProperty("phuong-fill", "fill-opacity", d); mapGL.setPaintProperty("luoi-anh-lop", "raster-opacity", d); };
+$("#bat-ranh-gioi").onchange = hienLop;
+$("#bat-gee").onchange = veGEE;
+$("#chon-nen").onchange = e => { for (const k of Object.keys(NEN_DS)) mapGL.setLayoutProperty("nen-" + k, "visibility", e.target.value === k ? "visible" : "none");
+  mapGL.setLayoutProperty("nen-sang-nhan", "visibility", e.target.value === "sang" ? "visible" : "none"); };
+$$("#khoi-nguong input, #khoi-nguong select").forEach(el => el.addEventListener(el.type === "number" ? "input" : "change", () => { if (S.ph) veTatCa(); }));
+$("#gap-trai").onclick = () => { $("#bd-app").classList.toggle("an-trai"); $("#gap-trai").textContent = $("#bd-app").classList.contains("an-trai") ? "▶" : "◀"; setTimeout(() => mapGL.resize(), 30); };
+$("#gap-phai").onclick = () => { const a = $("#bd-app");
+  if (matchMedia("(max-width:1100px)").matches) a.classList.toggle("mo-phai"); else a.classList.toggle("an-phai");
+  const an = a.classList.contains("an-phai") || (matchMedia("(max-width:1100px)").matches && !a.classList.contains("mo-phai"));
+  $("#gap-phai").textContent = an ? "◀" : "▶"; setTimeout(() => mapGL.resize(), 30); };
+
+// ---------- animation theo khoảng thời gian người dùng chọn ----------
+function dungChay() { if (S.play) { S.play.dung = true; S.play = null; $("#nut-chay").textContent = "▶"; } }
+$("#nut-chay").onclick = async () => {
+  if (S.play) { dungChay(); return; }
+  let tu = +$("#ani-tu").value, den = +$("#ani-den").value;
+  if (tu > den) [tu, den] = [den, tu];
+  if (tu === den) { alert("Chọn khoảng thời gian có ít nhất 2 tháng"); return; }
+  const phien = { dung:false }; S.play = phien; $("#nut-chay").textContent = "❚❚";
+  if (S.iKy < tu || S.iKy >= den) S.iKy = tu - 1;
+  while (!phien.dung) {
+    S.iKy = S.iKy + 1 > den ? tu : S.iKy + 1;
+    $("#thanh-ky").value = S.iKy;
+    const t0 = Date.now();
+    await capNhatKy(true);
+    const ke = S.dsKy[S.iKy + 1 > den ? tu : S.iKy + 1];    // tải trước tháng kế tiếp
+    if (ke) { taiTruoc(ke); }
+    await new Promise(r => setTimeout(r, Math.max(50, +$("#ani-toc").value - (Date.now() - t0))));
+  }
+};
+function taiTruoc(ky) {
+  const k1 = `${S.bo.id}|${ky}`; if (!S.cachePh[k1]) api(`/api/phuong?bo=${S.bo.id}&ky=${ky}`).then(d => S.cachePh[k1] = d).catch(() => {});
+  if (S.dv === "luoi") { const k2 = `${S.bo.id}|${S.cs}|${ky}`; if (!S.cacheLop[k2]) api(`/api/lop?bo=${S.bo.id}&cs=${S.cs}&ky=${ky}`).then(d => S.cacheLop[k2] = d).catch(() => {}); }
+}
+function xemTrenBanDo(bo, cs, ky) {
+  const b = boTheoMa(bo); if (!b) return;
+  dungChay(); S.loai = b.loai; S.cs = cs; S.xh = cs; S.boMa[b.loai] = b.ma; if (b.mo_hinh) S.moHinh = b.mo_hinh; S.kyMuon = ky;
+  moTab("ban-do"); chonBo();
+}
+
+// ---------- so sánh mô hình (dùng ở trang Đánh giá) ----------
+function bangMoHinh(cs) {
+  const rows = (S.moHinhRows || []).filter(r => r.chi_so === cs);
+  if (!rows.length) return null;
+  const theoMH = {};
+  rows.forEach(r => { (theoMH[r.mo_hinh] ||= {})[r.tap] = r; });
+  const ds = Object.entries(theoMH).map(([mh, t]) => ({ mh, test:t.TEST || null, bt:t.BACKTEST || null }))
+    .sort((a, b) => ((a.test||a.bt)?.rmse ?? 9e9) - ((b.test||b.bt)?.rmse ?? 9e9));
+  const so = (v, n) => v == null ? "–" : Number(v).toFixed(n);
+  const html = `<table><thead><tr><th>Mô hình</th><th>MAE</th><th>RMSE</th><th>R²</th><th>MAPE %</th><th title="So dự báo 2026 với hiện trạng 2026 thật">RMSE 2026</th></tr></thead><tbody>${
+    ds.map((x, i) => { const g = x.test || x.bt || {};
+      return `<tr class="${i === 0 ? "tot" : ""}"><td><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${MAU_MO_HINH[x.mh] || "#888"};margin-right:6px"></span>${x.mh}${i === 0 ? " ★" : ""}</td>
+        <td>${so(g.mae, 3)}</td><td>${so(g.rmse, 3)}</td><td>${so(g.r2, 3)}</td><td>${so(g.mape_pct, 1)}</td><td>${so(x.bt?.rmse, 3)}</td></tr>`; }).join("")
+  }</tbody></table>`;
+  return { html, ds };
+}
+
+// ---------- hộp thoại chung ----------
+$$("[data-dong]").forEach(b => b.onclick = () => $("#" + b.dataset.dong).classList.remove("bat"));
+$$(".phong-to").forEach(h => h.addEventListener("click", e => { if (e.target === h) h.classList.remove("bat"); }));
+$("#nut-nguoi").onclick = e => { e.stopPropagation(); $("#menu-nguoi").classList.toggle("bat"); };
+document.addEventListener("click", () => $("#menu-nguoi").classList.remove("bat"));
+$("#m-mk").onclick = () => {
+  if (S.toi && S.toi.ten === "khach") { alert("Bạn đang xem với tư cách khách – không có mật khẩu để đổi."); return; }
+  $("#mk-tt").textContent = ""; $("#mk-cu").value = ""; $("#mk-moi").value = ""; $("#hop-mk").classList.add("bat"); };
+$("#mk-luu").onclick = async () => {
+  try { await api("/api/tai_khoan/doi_mat_khau", { method:"POST", body:JSON.stringify({ cu:$("#mk-cu").value, moi:$("#mk-moi").value }) });
+        alert("Đã đổi mật khẩu. Hãy đăng nhập lại."); location.href = "/dang-nhap"; }
+  catch (e) { $("#mk-tt").textContent = e.message; }
+};
+async function veTaiKhoan(ds) {
+  ds = ds || await api("/api/tai_khoan/ds");
+  $("#tk-bang").innerHTML = ds.map(u => `<tr><td><b>${esc(u.ten)}</b></td><td>${esc(u.ten_hien)}</td><td>${u.vai_tro === "admin" ? "Quản trị viên" : "Người dùng (chỉ xem)"}</td>
+    <td style="text-align:right"><button class="nut nho" data-sua="${esc(u.ten)}">Sửa</button> <button class="nut nho do" data-xoa-tk="${esc(u.ten)}">Xóa</button></td></tr>`).join("");
+  $$("[data-sua]").forEach(b => b.onclick = () => { const u = ds.find(x => x.ten === b.dataset.sua);
+    $("#tk-ten").value = u.ten; $("#tk-hien").value = u.ten_hien; $("#tk-vt").value = u.vai_tro; $("#tk-mk").value = ""; $("#tk-tt").textContent = "Đang sửa " + u.ten; });
+  $$("[data-xoa-tk]").forEach(b => b.onclick = async () => {
+    if (!confirm("Xóa tài khoản " + b.dataset.xoaTk + "?")) return;
+    try { const r = await api(`/api/tai_khoan/xoa?ten=${encodeURIComponent(b.dataset.xoaTk)}`, { method:"POST" }); veTaiKhoan(r.ds); }
+    catch (e) { alert(e.message); } });
+}
+$("#m-tk").onclick = () => { $("#hop-tk").classList.add("bat"); $("#tk-tt").textContent = ""; veTaiKhoan().catch(e => alert(e.message)); };
+$("#tk-luu").onclick = async () => {
+  try { const r = await api("/api/tai_khoan/luu", { method:"POST", body:JSON.stringify({ ten:$("#tk-ten").value, ten_hien:$("#tk-hien").value, vai_tro:$("#tk-vt").value, mat_khau:$("#tk-mk").value }) });
+        $("#tk-tt").textContent = "Đã lưu"; $("#tk-mk").value = ""; veTaiKhoan(r.ds); }
+  catch (e) { $("#tk-tt").textContent = e.message; }
+};
+</script>
+
+<script>
+// ================= TẢI ẢNH LÊN =================
+const TL = { tep:[] };
+let banDoXem = null, lopXem = null;
+function loaiTL() { return document.querySelector("input[name=loai]:checked").value; }
+function capNhatFormTL() {
+  const l = loaiTL();
+  $$("#f-loai label").forEach(x => x.classList.toggle("bat", x.dataset.l === l));
+  $("#o-mo-hinh").style.display = l === "DU_BAO" ? "" : "none";
+  $("#o-kich-ban").style.display = l === "GIA_LAP" ? "" : "none";
+  if (l === "DU_BAO" && $("#f-nguon").value === "GEE") $("#f-nguon").value = "Mô hình AI";
+  if (l === "HIEN_TRANG" && $("#f-nguon").value === "Mô hình AI") $("#f-nguon").value = "GEE";
+  const ds = (S.tq ? S.tq.bo_du_lieu : []).filter(b => b.loai === l);
+  $("#f-bo").innerHTML = `<option value="">Tự tạo bộ mới theo ${l === "DU_BAO" ? "mô hình" : l === "GIA_LAP" ? "kịch bản" : "vệ tinh, nguồn"}</option>` +
+    ds.map(b => `<option value="${esc(b.ma)}">${esc(b.ma)}</option>`).join("");
+}
+$$("input[name=loai]").forEach(r => r.onchange = capNhatFormTL);
+
+function veDsTep() {
+  $("#ds-tep").innerHTML = TL.tep.map((t, i) => {
+    let tt = `<span>${fmtKB(t.file.size)}</span>`;
+    if (t.dangDoc) tt += ` · đang đọc thông tin ảnh…`;
+    if (t.loi) tt += ` · <span class="canh">${esc(t.loi)}</span>`;
+    (t.info || []).forEach(a => {
+      const b1 = a.bang.map(b => `băng ${b.bang}: ${b.min == null ? "trống" : Number(b.min).toFixed(2) + " → " + Number(b.max).toFixed(2)}`).join("; ");
+      const phu = a.phu_vung_pct;
+      tt += `<br>${a.ten_tep !== t.file.name ? "<b>" + esc(a.ten_tep) + "</b> · " : ""}${esc(a.crs)}${a.ten_crs ? " (" + esc(a.ten_crs) + ")" : ""} · ${a.rong}×${a.cao} px · ${a.so_bang} băng · ${a.co_pixel_m} m/pixel`
+          + `<br>Phủ vùng nghiên cứu: <span class="${phu > 50 ? "tot" : "canh"}">${phu == null ? "?" : phu + "%"}</span>`
+          + ` · Gợi ý: ${a.goi_y_chi_so || (a.so_bang >= 3 ? "3 băng LST·NDVI·TVDI" : "chưa rõ chỉ số")}, ${a.goi_y_ky ? fmtKy(a.goi_y_ky, false) : "chưa rõ tháng"}<br>${b1}`;
+    });
+    if (t.xong) tt += `<br><span class="tot">Đã nạp vào kho</span>`;
+    return `<div class="tep"><div class="dau"><b>${esc(t.file.name)}</b><button class="nut nho" data-bo="${i}">Bỏ</button></div><div class="tt">${tt}</div></div>`;
+  }).join("");
+  $$("#ds-tep [data-bo]").forEach(b => b.onclick = () => { TL.tep.splice(+b.dataset.bo, 1); veDsTep(); veXemTruoc(); });
+  $("#nut-tai-len").disabled = !TL.tep.some(t => !t.xong);
+  $("#nut-xoa-ds").disabled = !TL.tep.length;
+}
+function veXemTruoc() {
+  const co = TL.tep.flatMap(t => t.info || []);
+  $("#ban-do-xem").style.display = co.length ? "block" : "none";
+  if (!co.length) return;
+  if (!banDoXem) {
+    banDoXem = L.map("ban-do-xem", { attributionControl:false, zoomControl:false });
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}").addTo(banDoXem);
+    const v = S.tq && S.tq.vung[0];
+    if (v) L.geoJSON(v.geojson, { style:{ color:"#dc2626", weight:1.5, fill:false } }).addTo(banDoXem);
+  }
+  setTimeout(() => {
+    banDoXem.invalidateSize();
+    if (lopXem) banDoXem.removeLayer(lopXem);
+    lopXem = L.featureGroup(co.map(a => L.rectangle(a.khung_bao, { color:"#0d9488", weight:2, fillOpacity:.15 }))).addTo(banDoXem);
+    banDoXem.fitBounds(lopXem.getBounds().extend(S.tq.vung[0] ? L.geoJSON(S.tq.vung[0].geojson).getBounds() : lopXem.getBounds()), { padding:[10,10] });
+  }, 30);
+}
+async function themTep(files) {
+  for (const f of files) {
+    if (!/\.(tif|tiff|zip)$/i.test(f.name)) { alert(`${f.name}: chỉ nhận .tif, .tiff hoặc .zip`); continue; }
+    const t = { file:f, dangDoc:true }; TL.tep.push(t); veDsTep();
+    try {
+      const r = await api(`/api/kiem_tra?ten=${encodeURIComponent(f.name)}`, { method:"POST", body:f });
+      t.info = r.anh;
+      const a = r.anh[0];
+      if (a) {
+        if (!$("#f-ky").value && a.goi_y_ky && TL.tep.length === 1) $("#f-ky").value = a.goi_y_ky;
+        if ($("#f-cs").value === "AUTO" && a.so_bang >= 3 && TL.tep.length === 1) $("#f-cs").value = "ALL";
+      }
+    } catch (e) { t.loi = e.message; }
+    t.dangDoc = false; veDsTep(); veXemTruoc();
+  }
+}
+$("#chon-tep").onchange = e => { themTep([...e.target.files]); e.target.value = ""; };
+const vt = $("#vung-tha");
+["dragenter","dragover"].forEach(ev => vt.addEventListener(ev, e => { e.preventDefault(); vt.classList.add("keo"); }));
+["dragleave","drop"].forEach(ev => vt.addEventListener(ev, e => { e.preventDefault(); vt.classList.remove("keo"); }));
+vt.addEventListener("drop", e => themTep([...e.dataTransfer.files]));
+$("#nut-xoa-ds").onclick = () => { TL.tep = []; veDsTep(); veXemTruoc(); $("#ket-qua-tl").innerHTML = ""; $("#trang-thai-tl").textContent = ""; };
+
+function guiTep(t, thamSo) {
+  return new Promise((ok, loi) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", "/api/tai_len?" + new URLSearchParams(thamSo));
+    x.upload.onprogress = e => { if (e.lengthComputable) {
+      const pt = Math.round(100 * e.loaded / e.total);
+      $("#tien-do u").style.width = pt * 0.6 + "%";
+      $("#trang-thai-tl").textContent = pt < 100 ? `Đang gửi ${t.file.name}… ${pt}%` : `Đang nắn ảnh về lưới và ghi vào CSDL: ${t.file.name}…`; } };
+    x.onload = () => { let j; try { j = JSON.parse(x.responseText); } catch { j = { loi:x.responseText }; }
+      x.status === 200 ? ok(j) : loi(new Error(j.loi || x.statusText)); };
+    x.onerror = () => loi(new Error("Mất kết nối tới máy chủ"));
+    x.send(t.file);
+  });
+}
+$("#nut-tai-len").onclick = async () => {
+  const l = loaiTL();
+  if (l === "DU_BAO" && !$("#f-mo-hinh").value) { alert("Ảnh dự báo cần chọn tên mô hình"); return; }
+  const thamSo = { cs:$("#f-cs").value, ky:$("#f-ky").value, loai:l, ve_tinh:$("#f-ve-tinh").value, nguon:$("#f-nguon").value,
+                   mo_hinh: l === "DU_BAO" ? $("#f-mo-hinh").value : l === "GIA_LAP" ? $("#f-kich-ban").value : "",
+                   bo:$("#f-bo").value, nodata:$("#f-nodata").value };
+  $("#nut-tai-len").disabled = true; $("#tien-do").style.display = "block"; $("#ket-qua-tl").innerHTML = "";
+  const viec = TL.tep.filter(t => !t.xong);
+  let thanhCong = 0;
+  for (const [i, t] of viec.entries()) {
+    $("#tien-do u").style.width = "0";
+    try {
+      const r = await guiTep(t, { ...thamSo, ten:t.file.name });
+      t.xong = true; thanhCong++;
+      $("#tien-do u").style.width = "100%";
+      r.ket_qua.forEach(k => {
+        $("#ket-qua-tl").insertAdjacentHTML("beforeend", `<div class="ket-qua">
+          <b>Đã tải lên kho: ${esc(k.ten_tep)}</b> → bộ <b>${esc(k.bo)}</b> <span class="chip ${k.loai}">${TEN_LOAI[k.loai]}</span> · ${fmtKy(k.ky, false)} · ${k.giay} giây<br>
+          ${k.chi_so.map(c => `<span class="chip cs">${c.ma}</span> ${Number(c.so_o).toLocaleString("vi-VN")} ô · ${esc(c.ghi_chu)}`).join("<br>")}<br>
+          Tệp lưu tại <code>${esc(k.duong_dan)}</code> (${k.dinh_dang})
+          ${k.chi_so.filter(c => c.so_o > 0).map(c => `<button class="nut nho" style="margin:6px 6px 0 0" data-xem="${esc(k.bo)}|${c.ma}|${k.ky}">Xem ${c.ma} trên bản đồ</button>`).join("")}
+        </div>`);
+      });
+    } catch (e) {
+      t.loi = e.message;
+      $("#ket-qua-tl").insertAdjacentHTML("beforeend", `<div class="ket-qua loi"><b>${esc(t.file.name)}</b>: ${esc(e.message)}</div>`);
+    }
+    veDsTep();
+  }
+  $("#trang-thai-tl").textContent = `Xong: ${thanhCong}/${viec.length} tệp nạp thành công.`;
+  $("#tien-do").style.display = "none";
+  $$("#ket-qua-tl [data-xem]").forEach(b => b.onclick = () => { const [bo, cs, ky] = b.dataset.xem.split("|"); xemTrenBanDo(bo, cs, ky); });
+  if (thanhCong) { await taiLaiTongQuan(); taiLichSu(); daMo.kho = 0; }
+};
+async function taiLaiTongQuan() {
+  S.tq = await api("/api/tong_quan");
+  S.cacheKy = {}; S.cacheLop = {};
+  capNhatFormTL();
+}
+async function taiLichSu() {
+  try {
+    const r = await api("/api/lich_su");
+    $("#lich-su").innerHTML = r.length ? `<table><thead><tr><th>Lúc</th><th>Nguồn</th><th>Bộ dữ liệu</th><th class="so">Số dòng</th><th class="so">Giây</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>${
+      r.map(x => `<tr><td>${new Date(x.bat_dau).toLocaleString("vi-VN")}</td><td>${esc(x.nguon)}</td><td>${esc(x.bo || "–")}</td>
+        <td class="so">${x.so_dong == null ? "–" : Number(x.so_dong).toLocaleString("vi-VN")}</td><td class="so">${x.giay ?? "–"}</td>
+        <td><span class="chip" style="background:${x.trang_thai === "XONG" ? "var(--tot)" : x.trang_thai === "LOI" ? "var(--loi)" : "#eab308"}">${x.trang_thai === "XONG" ? "Xong" : x.trang_thai === "LOI" ? "Lỗi" : "Đang nạp"}</span></td>
+        <td title="${esc(x.thong_bao)}">${esc((x.thong_bao || "").slice(0, 90))}</td></tr>`).join("")}</tbody></table>`
+      : `<div class="ghi-chu" style="padding:12px">Chưa có lần nạp nào.</div>`;
+  } catch (e) { $("#lich-su").innerHTML = `<div class="ghi-chu" style="padding:12px">${esc(e.message)}</div>`; }
+}
+$("#nut-lich-su").onclick = taiLichSu;
+
+// ================= KHO ẢNH =================
+async function taiKho() {
+  $("#bang-kho").innerHTML = `<div class="ghi-chu" style="padding:12px">Đang tải…</div>`;
+  try { S.kho = await api("/api/kho"); } catch (e) { $("#bang-kho").innerHTML = `<div class="ghi-chu" style="padding:12px">${esc(e.message)}</div>`; return; }
+  const nam = [...new Set(S.kho.map(r => r.ky.slice(0, 4)))].sort().reverse();
+  $("#k-nam").innerHTML = `<option value="">Tất cả</option>` + nam.map(n => `<option>${n}</option>`).join("");
+  $("#dem-kho").textContent = S.kho.length.toLocaleString("vi-VN");
+  const dem = l => S.kho.filter(r => r.loai === l).length;
+  $("#kpi-kho").innerHTML = `<div><b>${S.kho.length.toLocaleString("vi-VN")}</b><span>lớp ảnh trong CSDL</span></div>
+    <div><b style="color:var(--ht)">${dem("HIEN_TRANG").toLocaleString("vi-VN")}</b><span>hiện trạng</span></div>
+    <div><b style="color:var(--db)">${dem("DU_BAO").toLocaleString("vi-VN")}</b><span>dự báo</span></div>
+    <div><b style="color:var(--gl)">${dem("GIA_LAP").toLocaleString("vi-VN")}</b><span>giả lập · ${S.kho.filter(r => r.tai_len).length} ảnh tải lên</span></div>`;
+  S.trangKho = 0; veKho();
+}
+function locKho() {
+  const cs = $("#k-cs").value, l = $("#k-loai").value, n = $("#k-nam").value, ng = $("#k-nguon").value, q = khongDau($("#k-tim").value.trim());
+  return (S.kho || []).filter(r => (!cs || r.chi_so === cs) && (!l || r.loai === l) && (!n || r.ky.startsWith(n))
+    && (!ng || (ng === "TL") === r.tai_len)
+    && (!q || khongDau([r.bo, r.ten_bo, r.ten_tep, r.nguon_mo_hinh].join(" ")).includes(q)));
+}
+function veKho() {
+  const ds = locKho(), CO = 50, so = Math.max(1, Math.ceil(ds.length / CO));
+  S.trangKho = Math.min(S.trangKho, so - 1);
+  const trang = ds.slice(S.trangKho * CO, S.trangKho * CO + CO);
+  $("#bang-kho").innerHTML = ds.length ? `<table><thead><tr><th>Tháng</th><th>Chỉ số</th><th>Loại</th><th>Bộ dữ liệu</th><th>Nguồn / mô hình</th>
+      <th class="so">Số ô</th><th class="so">Trung bình</th><th>Tệp trong kho</th><th>Ngày nạp</th><th></th></tr></thead><tbody>${
+    trang.map(r => `<tr><td>${fmtKy(r.ky, false)}</td><td><span class="chip cs">${r.chi_so}</span></td><td><span class="chip ${r.loai}">${TEN_LOAI[r.loai]}</span></td>
+      <td title="${esc(r.ten_bo)}">${esc(r.bo)}</td><td>${esc(r.nguon_mo_hinh || "–")}</td>
+      <td class="so">${r.so_o == null ? "–" : Number(r.so_o).toLocaleString("vi-VN")}</td><td class="so">${fmt(r.tb, r.chi_so)}</td>
+      <td>${r.ten_tep ? esc(r.ten_tep) + ` <small style="color:var(--phu)">${esc(r.dinh_dang || "")} · ${fmtKB(r.kich_thuoc_byte)}</small>` : `<small style="color:var(--phu)">dựng từ bảng pixel khi tải</small>`}</td>
+      <td>${r.ngay_nap ? new Date(r.ngay_nap).toLocaleDateString("vi-VN") : "–"}</td>
+      <td><span class="hang" style="gap:5px">
+        <button class="nut nho" data-xem="${esc(r.bo)}|${r.chi_so}|${r.ky}">Xem</button>
+        <a class="nut nho" href="/api/tai_ve?bo=${r.bo_id}&cs=${r.chi_so}&ky=${r.ky}">GeoTIFF</a>
+        ${r.tai_len && LA_ADMIN ? `<button class="nut nho do" data-xoa="${r.bo_id}|${r.chi_so}|${r.ky}|${esc(r.bo)}">Xóa</button>` : ""}
+      </span></td></tr>`).join("")}</tbody></table>`
+    : `<div class="ghi-chu" style="padding:14px">Không có lớp ảnh nào khớp bộ lọc. Đổi bộ lọc hoặc tải ảnh mới ở trang “Tải ảnh lên”.</div>`;
+  $("#phan-trang").innerHTML = `<span>${ds.length.toLocaleString("vi-VN")} lớp · trang ${S.trangKho + 1}/${so}</span>
+    <button class="nut nho" id="kt" ${S.trangKho === 0 ? "disabled" : ""}>Trước</button><button class="nut nho" id="ks" ${S.trangKho >= so - 1 ? "disabled" : ""}>Sau</button>`;
+  $("#kt").onclick = () => { S.trangKho--; veKho(); }; $("#ks").onclick = () => { S.trangKho++; veKho(); };
+  $$("#bang-kho [data-xem]").forEach(b => b.onclick = () => { const [bo, cs, ky] = b.dataset.xem.split("|"); xemTrenBanDo(bo, cs, ky); });
+  $$("#bang-kho [data-xoa]").forEach(b => b.onclick = async () => {
+    const [bo, cs, ky, ma] = b.dataset.xoa.split("|");
+    if (!confirm(`Xóa lớp ${cs} ${fmtKy(ky, false)} của bộ ${ma}? Thao tác này xóa dữ liệu pixel, thống kê và tệp trong kho.`)) return;
+    try { await api(`/api/xoa?bo=${bo}&cs=${cs}&ky=${ky}`, { method:"POST" }); await taiLaiTongQuan(); taiKho(); }
+    catch (e) { alert(e.message); }
+  });
+}
+["#k-cs","#k-loai","#k-nam","#k-nguon"].forEach(s => $(s).onchange = () => { S.trangKho = 0; veKho(); });
+$("#k-tim").oninput = () => { S.trangKho = 0; veKho(); };
+$("#nut-lam-moi-kho").onclick = taiKho;
+
+// ================= CHUỖI THỜI GIAN THEO VÙNG =================
+const C = { cs:"LST", rows:[], an:new Set(), bd:null, bdNam:null, bdMua:null, daMo:false };
+async function moChuoi() {
+  if (!C.daMo) {
+    C.daMo = true;
+    try {
+      const ds = await api("/api/ds_vung");
+      const nhom = (cap, ten) => { const x = ds.filter(d => d.cap === cap); return x.length ? `<optgroup label="${ten}">${
+        x.map(d => `<option value="${d.id}">${esc(d.ten)}${d.hien_hanh ? "" : " (trước 07/2025)"}</option>`).join("")}</optgroup>` : ""; };
+      $("#c-vung").innerHTML = `<option value="0">Toàn vùng nghiên cứu</option>` + nhom("HUYEN", "Quận / huyện") + nhom("XA", "Phường / xã");
+    } catch (e) {}
+  }
+  await taiChuoiVung();
+}
+const tenDuong = r => r.loai === "HIEN_TRANG" ? (r.bo === "HT_GEE_THANG" ? "Hiện trạng (GEE)" : "Hiện trạng · " + r.bo)
+                    : r.loai === "DU_BAO" ? "Dự báo · " + (r.mo_hinh || r.bo) + (boTheoMa(r.bo) ? " " + khoangBo(boTheoMa(r.bo)) : "") : "Giả lập · " + (r.kich_ban || r.bo);
+const mauDuong = (r, i) => r.loai === "HIEN_TRANG" ? (r.bo === "HT_GEE_THANG" ? MAU_LOAI.HIEN_TRANG : ["#0891b2","#0ea5e9","#6366f1"][i % 3])
+                    : r.loai === "DU_BAO" ? (MAU_MO_HINH[r.mo_hinh] || "#f97316") : ["#db2777","#e11d48","#c026d3"][i % 3];
+async function taiChuoiVung() {
+  try { C.rows = (await api(`/api/chuoi_vung?cs=${C.cs}&vung=${$("#c-vung").value}`)).filter(r => !laBoNgay(r.bo)); }
+  catch (e) { C.rows = []; }
+  const nam = [...new Set(C.rows.map(r => +r.ky.slice(0, 4)))].sort((a, b) => a - b);
+  const tu = $("#c-tu").value, den = $("#c-den").value;
+  $("#c-tu").innerHTML = nam.map(n => `<option>${n}</option>`).join("");
+  $("#c-den").innerHTML = nam.map(n => `<option>${n}</option>`).join("");
+  if (nam.length) { $("#c-tu").value = nam.includes(+tu) ? tu : nam[0]; $("#c-den").value = nam.includes(+den) ? den : nam[nam.length - 1]; }
+  veChuoiVung();
+}
+function veChuoiVung() {
+  const tu = +$("#c-tu").value || 0, den = +$("#c-den").value || 9999;
+  const rows = C.rows.filter(r => { const y = +r.ky.slice(0, 4); return y >= tu && y <= den; });
+  const theoBo = {};
+  rows.forEach(r => { (theoBo[r.bo] ||= { r, ds:[] }).ds.push(r); });
+  const bo = Object.values(theoBo);
+  const demLoai = {};
+  bo.forEach(b => { b.i = demLoai[b.r.loai] = (demLoai[b.r.loai] ?? -1) + 1; b.ten = tenDuong(b.r); b.mau = mauDuong(b.r, b.i); });
+  if (!C.anDat) { C.anDat = true; bo.filter(b => b.r.loai !== "HIEN_TRANG" && b.r.mo_hinh !== S.moHinh && b.r.loai === "DU_BAO").forEach(b => C.an.add(b.r.bo)); }
+  $("#c-duong").innerHTML = bo.map(b => `<label class="${C.an.has(b.r.bo) ? "tat" : ""}" style="border-color:${b.mau}">
+      <input type="checkbox" data-bo="${esc(b.r.bo)}" ${C.an.has(b.r.bo) ? "" : "checked"}><i style="background:${b.mau}"></i>${esc(b.ten)}</label>`).join("");
+  $$("#c-duong input").forEach(x => x.onchange = () => { x.checked ? C.an.delete(x.dataset.bo) : C.an.add(x.dataset.bo); veChuoiVung(); });
+  [C.bd, C.bdNam, C.bdMua].forEach(c => c && c.destroy()); C.bd = C.bdNam = C.bdMua = null;
+  if (!bo.length) { $("#c-trong").style.display = "grid"; $("#c-kpi").innerHTML = ""; return; }
+  $("#c-trong").style.display = "none";
+  const nhan = [...new Set(rows.map(r => r.ky))].sort();
+  const ds = [];
+  bo.filter(b => !C.an.has(b.r.bo)).forEach(b => {
+    const m = Object.fromEntries(b.ds.map(x => [x.ky, x]));
+    const ht = b.r.loai === "HIEN_TRANG";
+    ds.push({ label:b.ten, data:nhan.map(k => m[k] ? m[k].tb : null), borderColor:b.mau, backgroundColor:b.mau,
+              borderWidth: ht ? 2.2 : 2, borderDash: b.r.loai === "DU_BAO" ? [6, 3] : b.r.loai === "GIA_LAP" ? [2, 3] : [],
+              pointRadius: ht ? 0 : 2.5, spanGaps:true, tension:.25 });
+    if (ht && b.i === 0) {
+      ds.push({ label:"_p90", data:nhan.map(k => m[k] ? m[k].p90 : null), borderWidth:0, pointRadius:0, backgroundColor:"rgba(37,99,235,.10)", fill:"+1", spanGaps:true });
+      ds.push({ label:"_p10", data:nhan.map(k => m[k] ? m[k].p10 : null), borderWidth:0, pointRadius:0, spanGaps:true });
+    }
+  });
+  const donVi = C.cs === "LST" ? " (°C)" : "";
+  C.bd = new Chart($("#c-bd"), { type:"line", data:{ labels:nhan.map(k => k.slice(0, 7)), datasets:ds },
+    options:{ responsive:true, maintainAspectRatio:false, animation:false, interaction:{ mode:"index", intersect:false },
+      plugins:{ legend:{ labels:{ boxWidth:12, font:{ size:11 }, filter:i => !i.text.startsWith("_") } },
+                tooltip:{ filter:i => !i.dataset.label.startsWith("_") } },
+      scales:{ x:{ ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:16, font:{ size:10.5 } }, grid:{ display:false } },
+               y:{ title:{ display:true, text:C.cs + donVi }, grid:{ color:"#eef2f6" } } } } });
+
+  // ---- KPI + biểu đồ năm / mùa từ chuỗi hiện trạng chính ----
+  const htBo = bo.find(b => b.r.loai === "HIEN_TRANG" && b.i === 0);
+  const f = v => fmt(v, C.cs);
+  let kpi = "";
+  if (htBo) {
+    const v = htBo.ds.filter(x => x.tb != null);
+    const tb = v.reduce((a, x) => a + x.tb, 0) / (v.length || 1);
+    const theoNam = {}, theoThang = {};
+    v.forEach(x => { (theoNam[x.ky.slice(0, 4)] ||= []).push(x.tb); (theoThang[+x.ky.slice(5, 7)] ||= []).push(x.tb); });
+    const tbm = a => a.reduce((s, x) => s + x, 0) / a.length;
+    const nam = Object.keys(theoNam).sort(), tbNam = nam.map(n => tbm(theoNam[n]));
+    // xu hướng: hồi quy tuyến tính trên chuỗi tháng (đơn vị / năm)
+    const xs = v.map(x => +x.ky.slice(0, 4) + (+x.ky.slice(5, 7) - 1) / 12), ys = v.map(x => x.tb);
+    const mx = tbm(xs), my = tbm(ys);
+    const doc = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / (xs.reduce((s, x) => s + (x - mx) ** 2, 0) || 1);
+    const thang = Array.from({ length:12 }, (_, i) => theoThang[i + 1] ? tbm(theoThang[i + 1]) : null);
+    const iMax = thang.reduce((b, x, i) => x != null && (b < 0 || x > thang[b]) ? i : b, -1);
+    const du = nam.map(n => theoNam[n].length >= 10);            // chỉ so các năm đủ (≥ 10 tháng có ảnh)
+    const iNam = tbNam.reduce((bt, x, i) => (du[i] || !du.some(Boolean)) && (bt < 0 || x > tbNam[bt]) ? i : bt, -1);
+    const dvDoc = C.cs === "LST" ? " °C/năm" : "/năm";
+    kpi = `<div><b>${f(tb)}</b><span>Trung bình hiện trạng ${nam[0]}–${nam[nam.length - 1]}</span></div>
+      <div><b style="color:${doc > 0 ? "var(--loi)" : "var(--tot)"}">${doc > 0 ? "+" : ""}${doc.toFixed(C.cs === "LST" ? 3 : 4)}${dvDoc}</b><span>Xu hướng tuyến tính (${doc > 0 ? "tăng" : "giảm"})</span></div>
+      <div><b>Tháng ${iMax + 1}</b><span>${C.cs === "NDVI" ? "Thực vật xanh nhất" : C.cs === "TVDI" ? "Khô hạn nhất" : "Nóng nhất"} trong năm (${f(thang[iMax])})</span></div>
+      <div><b>${nam[iNam] || "–"}</b><span>Năm (đủ tháng) có trung bình cao nhất (${f(tbNam[iNam])})</span></div>`;
+    C.bdNam = new Chart($("#c-nam"), { type:"bar", data:{ labels:nam, datasets:[{ label:"Trung bình năm", data:tbNam,
+        backgroundColor:tbNam.map((x, i) => i === iNam ? "#f97316" : "#38bdf8"), borderRadius:6 }] },
+      options:{ responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:C.cs !== "LST", grid:{ color:"#eef2f6" } }, x:{ grid:{ display:false } } } } });
+    C.bdMua = new Chart($("#c-mua"), { type:"line", data:{ labels:["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"],
+        datasets:[{ label:"Trung bình nhiều năm", data:thang, borderColor:"#0d9488", backgroundColor:"rgba(13,148,136,.15)", fill:true, tension:.35, pointRadius:3 }] },
+      options:{ responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{ display:false } },
+        scales:{ y:{ grid:{ color:"#eef2f6" } }, x:{ grid:{ display:false } } } } });
+  }
+  const dem = l => bo.filter(b => b.r.loai === l).length;
+  $("#c-kpi").innerHTML = kpi || `<div><b>${dem("DU_BAO")}</b><span>chuỗi dự báo</span></div>`;
+}
+$$("#c-cs button").forEach(b => b.onclick = () => {
+  $$("#c-cs button").forEach(x => x.classList.toggle("bat", x === b)); C.cs = b.dataset.cs; taiChuoiVung(); });
+$("#c-vung").onchange = taiChuoiVung;
+$("#c-tu").onchange = $("#c-den").onchange = veChuoiVung;
+$("#c-csv").onclick = () => {
+  const ten = $("#c-vung").selectedOptions[0]?.textContent || "toan_vung";
+  const dong = ["bo_du_lieu,loai,mo_hinh,kich_ban,ky,trung_binh,p10,p90,min,max,so_o"].concat(
+    C.rows.map(r => [r.bo, r.loai, r.mo_hinh || "", r.kich_ban || "", r.ky, r.tb, r.p10 ?? "", r.p90 ?? "", r.gt_min ?? "", r.gt_max ?? "", r.so_pixel ?? ""].join(",")));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + dong.join("\n")], { type:"text/csv" }));
+  a.download = `chuoi_${C.cs}_${khongDau(ten).replace(/[^a-z0-9]+/g, "_")}.csv`; a.click();
+};
+$("#c-png").onclick = () => { if (!C.bd) return; const a = document.createElement("a");
+  a.href = C.bd.toBase64Image("image/png", 1); a.download = `chuoi_${C.cs}.png`; a.click(); };
+
+// ================= TỰ ĐỘNG GEE + BẢN ĐỒ =================
+const TD = { hen:null, daDien:false, dangChayTruoc:false, bd:[] };
+const TEN_TT = { CHO:"Chờ", TIM:"Tìm ảnh", TAI:"Đang tải", NAP:"Nạp CSDL", VE:"Vẽ bản đồ", XONG:"Xong", KHONG_ANH:"Không có ảnh", LOI:"Lỗi", HUY:"Đã dừng" };
+const kyVN = k => k ? `${k.slice(5,7)}/${k.slice(0,4)}` : "–";
+const gioVN = t => t ? new Date(t).toLocaleString("vi-VN", { hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit", year:"numeric" }) : "–";
+async function moTuDong() { await capNhatTD(); await taiDsBanDo(); }
+async function capNhatTD() {
+  let r; try { r = await api("/api/td/trang_thai"); } catch (e) { $("#td-tt").textContent = e.message; return; }
+  const tv = r.tac_vu, l = r.lich;
+  $("#td-dau").innerHTML = `
+    <div><b style="color:${r.gee.bat ? "var(--tot)" : "#b45309"}">${r.gee.bat ? "Đã kết nối" : "Chưa kết nối"}</b><span>Google Earth Engine</span></div>
+    <div><b>${kyVN(l.moi_nhat)}</b><span>Tháng mới nhất trong CSDL</span></div>
+    <div><b>${l.goi_y_tu ? kyVN(l.goi_y_tu) + " → " + kyVN(l.goi_y_den) : "Đã đủ"}</b><span>Tháng còn thiếu (đến tháng trước)</span></div>
+    <div><b style="color:${l.bat ? "var(--tot)" : "var(--phu)"}">${l.bat ? "Bật · mỗi " + (l.chu_ky_gio >= 24 ? l.chu_ky_gio / 24 + " ngày" : l.chu_ky_gio + " giờ") : "Tắt"}</b><span>Lịch tự động</span></div>`;
+  if (!TD.daDien) {
+    TD.daDien = true;
+    $("#td-tu").value = l.goi_y_tu || l.thang_truoc; $("#td-den").value = l.goi_y_den || l.thang_truoc;
+    $("#lich-bat").checked = l.bat; $("#lich-chu-ky").value = String(l.chu_ky_gio); $("#lich-ve").checked = l.ve_ban_do !== false;
+  }
+  $("#lich-chu").textContent = l.bat ? "Đang bật" : "Đang tắt";
+  $("#lich-tt").innerHTML = l.bat ? `Lần kiểm tra gần nhất: <b>${gioVN(l.lan_kiem_tra)}</b> · Lần kế tiếp: <b>${gioVN(l.lan_ke_tiep)}</b> · Lần tải gần nhất: ${gioVN(l.lan_chay)}`
+                                  : `Lịch đang tắt. Lần tải gần nhất: ${gioVN(l.lan_chay)}`;
+  // tiến độ
+  const n = tv.thang.length, xong = tv.thang.filter(t => !["CHO","TIM","TAI","NAP","VE"].includes(t.trang_thai)).length;
+  $("#td-tien-do u").style.width = n ? (100 * xong / n) + "%" : "0";
+  const dang = tv.thang.find(t => ["TIM","TAI","NAP","VE"].includes(t.trang_thai));
+  const ok = tv.thang.filter(t => t.trang_thai === "XONG").length, loi = tv.thang.filter(t => t.trang_thai === "LOI").length;
+  $("#td-tt").innerHTML = tv.dang_chay ? `<b>Đang chạy</b> (${esc(tv.nguon)}) · ${xong}/${n} tháng${dang ? ` · tháng ${kyVN(dang.ky)}: ${TEN_TT[dang.trang_thai]}…` : ""}`
+                        : n ? `Lần chạy lúc ${gioVN(tv.bat_dau)} (${esc(tv.nguon)}) đã xong: <b style="color:var(--tot)">${ok} tháng thành công</b>${loi ? `, <b style="color:var(--loi)">${loi} lỗi</b>` : ""}, ${n - ok - loi} bỏ qua.`
+                        : "Chưa chạy lần nào kể từ khi mở web.";
+  $("#td-thang").innerHTML = tv.thang.map(t => `<div class="th ${t.trang_thai}"><span class="tt">${TEN_TT[t.trang_thai] || t.trang_thai}</span>
+      <b>Tháng ${kyVN(t.ky)}</b>${t.so_canh != null ? ` <small class="ghi-chu">· ${t.so_canh} cảnh</small>` : ""}
+      <div class="gc">${esc(t.ghi_chu)}${t.ban_do && t.ban_do.length ? ` · <a href="#" data-mo-bd="${esc(t.ban_do[0])}">xem bản đồ</a>` : ""}</div></div>`).join("");
+  $$("#td-thang [data-mo-bd]").forEach(a => a.onclick = e => { e.preventDefault(); moBanDo(a.dataset.moBd); });
+  const log = $("#td-log"), cuoi = log.scrollTop + log.clientHeight >= log.scrollHeight - 5;
+  if (tv.nhat_ky.length) { log.textContent = tv.nhat_ky.join("\n"); if (cuoi) log.scrollTop = log.scrollHeight; }
+  $("#td-chay").disabled = tv.dang_chay || !r.gee.bat; $("#td-huy").disabled = !tv.dang_chay;
+  $("#td-chay").title = r.gee.bat ? "" : "Chạy web với --project <mã project GEE> để kết nối";
+  $("#dem-td").style.display = tv.dang_chay ? "" : "none";
+  // vừa chạy xong → làm mới dữ liệu cho các tab khác
+  if (TD.dangChayTruoc && !tv.dang_chay) { await taiLaiTongQuan(); await chonBo(); daMo.kho = 0; C.daMo = false; C.rows = []; taiDsBanDo(); }
+  if (tv.dang_chay && tv.ban_do_moi.length !== TD.soBdMoi) { TD.soBdMoi = tv.ban_do_moi.length; taiDsBanDo(); }
+  TD.dangChayTruoc = tv.dang_chay;
+  clearTimeout(TD.hen);
+  TD.hen = setTimeout(capNhatTD, tv.dang_chay ? 2000 : 15000);
+}
+$("#td-chay").onclick = async () => {
+  const tu = $("#td-tu").value, den = $("#td-den").value;
+  if (!tu || !den) return alert("Chọn tháng bắt đầu và tháng kết thúc");
+  try { await api(`/api/td/chay?` + new URLSearchParams({ tu, den, ve:$("#td-ve").checked ? 1 : 0, tai_lai:$("#td-tai-lai").checked ? 1 : 0 }), { method:"POST" });
+        capNhatTD(); } catch (e) { alert(e.message); }
+};
+$("#td-huy").onclick = async () => { await api("/api/td/huy", { method:"POST" }); capNhatTD(); };
+const luuLich = async () => {
+  try { await api(`/api/td/lich?` + new URLSearchParams({ bat:$("#lich-bat").checked ? 1 : 0, chu_ky:$("#lich-chu-ky").value, ve:$("#lich-ve").checked ? 1 : 0 }), { method:"POST" });
+        capNhatTD(); } catch (e) { alert(e.message); }
+};
+$("#lich-bat").onchange = luuLich; $("#lich-luu").onclick = luuLich;
+
+async function taiDsBanDo() {
+  try { TD.bd = await api("/api/bd/ds"); } catch (e) { TD.bd = []; }
+  veDsBanDo();
+}
+function veDsBanDo() {
+  const cs = $("#bd-loc-cs").value, loai = $("#bd-loc-loai").value;
+  const ds = TD.bd.filter(b => (!cs || b.cs === cs) && (!loai || b.loai === loai));
+  $("#bd-dem").textContent = `· ${TD.bd.length} bản đồ`;
+  const tenLoai = { HT:"HIEN_TRANG", DB:"DU_BAO", GL:"GIA_LAP" };
+  $("#bd-ds").innerHTML = ds.length ? ds.slice(0, 60).map(b => `<div class="bst" data-ten="${esc(b.ten)}">
+      <img loading="lazy" src="/api/bd/xem?ten=${encodeURIComponent(b.ten)}&t=${encodeURIComponent(b.luc)}" alt="${esc(b.ten)}">
+      <div><span><b>${b.cs}</b> · tháng ${kyVN(b.ky)}</span><span class="chip ${tenLoai[b.loai]}">${TEN_LOAI[tenLoai[b.loai]]}</span></div></div>`).join("")
+    + (ds.length > 60 ? `<div class="ghi-chu">… và ${ds.length - 60} bản đồ khác (dùng bộ lọc để xem)</div>` : "")
+    : `<div class="ghi-chu">Chưa có bản đồ. Bấm “Bắt đầu tải từ GEE”, “Vẽ lại mọi tháng hiện trạng” hoặc nút “Xuất bản đồ” ở tab Bản đồ.</div>`;
+  $$("#bd-ds .bst").forEach(x => x.onclick = () => moBanDo(x.dataset.ten));
+}
+$("#bd-loc-cs").onchange = $("#bd-loc-loai").onchange = veDsBanDo;
+$("#bd-ve-het").onclick = async () => {
+  const ht = boTheoMa("HT_GEE_THANG") || S.tq.bo_du_lieu.find(b => b.loai === "HIEN_TRANG");
+  if (!ht) return alert("Chưa có dữ liệu hiện trạng");
+  if (!confirm("Vẽ bản đồ LST, NDVI, TVDI cho mọi tháng hiện trạng? Có thể mất vài phút.")) return;
+  const n = $("#bd-ve-het"); n.disabled = true; n.textContent = "Đang vẽ…";
+  try { const r = await api(`/api/bd/ve?bo=${ht.id}&tat_ca=1`, { method:"POST" }); await taiDsBanDo();
+        alert(`Đã vẽ ${r.ban_do.length} bản đồ` + (r.bo_qua ? ` (bỏ qua ${r.bo_qua} lớp không có dữ liệu)` : "")); }
+  catch (e) { alert(e.message); }
+  n.disabled = false; n.textContent = "Vẽ lại mọi tháng hiện trạng";
+};
+function moBanDo(ten) {
+  const url = `/api/bd/xem?ten=${encodeURIComponent(ten)}&t=${Date.now()}`;
+  $("#pt-ten").textContent = ten; $("#pt-anh").src = url;
+  $("#pt-svg").href = url + "&tai=1"; $("#pt-svg").download = ten;
+  $("#phong-to").classList.add("bat");
+}
+$("#pt-dong").onclick = () => $("#phong-to").classList.remove("bat");
+$("#phong-to").onclick = e => { if (e.target.id === "phong-to") $("#phong-to").classList.remove("bat"); };
+$("#pt-png").onclick = () => {   // SVG → PNG (độ phân giải gấp đôi) ngay trên trình duyệt
+  const anh = new Image();
+  anh.onload = () => {
+    const cv = document.createElement("canvas"); cv.width = anh.naturalWidth * 2; cv.height = anh.naturalHeight * 2;
+    const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(anh, 0, 0, cv.width, cv.height);
+    cv.toBlob(b => { const a = document.createElement("a"); a.href = URL.createObjectURL(b);
+      a.download = $("#pt-ten").textContent.replace(/\.svg$/, ".png"); a.click(); }, "image/png");
+  };
+  anh.src = $("#pt-anh").src;
+};
+
+// ================= ĐÁNH GIÁ MÔ HÌNH =================
+const bieuDoDG = {};
+async function veDanhGia() {
+  if (!S.moHinhRows) S.moHinhRows = await api("/api/mo_hinh");
+  const tenCS = { LST:"LST – nhiệt độ bề mặt (°C)", NDVI:"NDVI – chỉ số thực vật", TVDI:"TVDI – chỉ số khô hạn" };
+  $("#danh-gia").innerHTML = ["LST","NDVI","TVDI"].map(cs => `<div class="khung" style="margin:0"><h3>${tenCS[cs]}</h3>
+      <div style="height:220px"><canvas id="dg-${cs}"></canvas></div><div id="dg-bang-${cs}" style="margin-top:12px"></div></div>`).join("");
+  ["LST","NDVI","TVDI"].forEach(cs => {
+    const b = bangMoHinh(cs);
+    if (!b) { $(`#dg-bang-${cs}`).innerHTML = `<div class="ghi-chu">Chưa có kết quả mô hình cho ${cs}.</div>`; return; }
+    $(`#dg-bang-${cs}`).innerHTML = b.html;
+    if (bieuDoDG[cs]) bieuDoDG[cs].destroy();
+    bieuDoDG[cs] = new Chart($(`#dg-${cs}`), { type:"bar",
+      data:{ labels:b.ds.map(x => x.mh), datasets:[
+        { label:"RMSE tập kiểm tra", data:b.ds.map(x => x.test ? x.test.rmse : null), backgroundColor:b.ds.map(x => MAU_MO_HINH[x.mh] || "#888"), borderRadius:6 },
+        { label:"RMSE 2026", data:b.ds.map(x => x.bt ? x.bt.rmse : null), backgroundColor:"rgba(15,23,42,.18)", borderRadius:6 }] },
+      options:{ indexAxis:"y", responsive:true, maintainAspectRatio:false, animation:false,
+        plugins:{ legend:{ labels:{ boxWidth:10, font:{ size:11 } } } }, scales:{ x:{ beginAtZero:true, ticks:{ font:{ size:10 } } }, y:{ ticks:{ font:{ size:11 } } } } } });
+  });
+}
+
+// ================= HIỆU NĂNG =================
+let bdHN = null, bdPV = null;
+async function doHieuNang() {
+  $("#nut-do").disabled = true; $("#nut-do").textContent = "Đang đo…";
+  $("#bang-hn").innerHTML = `<div class="ghi-chu">Đang chạy 6 truy vấn trên bảng pixel…</div>`;
+  try {
+    const r = await api("/api/hieu_nang");
+    $("#kpi-hn").innerHTML = `<div><b>${Number(r.tong_dong || 0).toLocaleString("vi-VN")}</b><span>dòng trong bảng pixel (ước tính)</span></div>
+      <div><b>${r.tong_phan_vung}</b><span>phân vùng (3 loại × 16 năm)</span></div>
+      <div><b>${esc(r.dung_luong)}</b><span>dung lượng CSDL</span></div>
+      <div><b>${r.phan_vung.length}</b><span>phân vùng đang chứa dữ liệu</span></div>`;
+    $("#bang-hn").innerHTML = `<div class="bang-cuon" style="max-height:none"><table><thead><tr><th>Truy vấn</th><th class="so">Thời gian</th><th class="so">Dòng trả về</th><th>Phân vùng đã quét</th></tr></thead><tbody>${
+      r.cau.map(c => c.loi ? `<tr><td>${esc(c.ten)}</td><td colspan="3" style="color:var(--loi)">${esc(c.loi)}</td></tr>` :
+        `<tr><td><b>${esc(c.ten)}</b><code class="sql">${esc(c.sql)}</code></td><td class="so"><b>${c.ms.toLocaleString("vi-VN")} ms</b></td>
+         <td class="so">${c.so_dong == null ? "–" : Number(c.so_dong).toLocaleString("vi-VN")}</td>
+         <td><span class="hang"><span class="thanh-pv"><u style="width:${Math.max(2, 100 * c.phan_vung / r.tong_phan_vung)}%"></u></span>${c.phan_vung}/${r.tong_phan_vung}</span></td></tr>`).join("")
+    }</tbody></table></div><p class="ghi-chu">Kỳ dùng để đo: ${fmtKy(r.ky_thu, false)} · ô thử: ${r.o_thu}. Số liệu đo trên máy đang chạy, mỗi lần bấm có thể chênh vài ms.</p>`;
+    const ok = r.cau.filter(c => !c.loi);
+    if (bdHN) bdHN.destroy();
+    bdHN = new Chart($("#bd-hn"), { type:"bar", data:{ labels:ok.map(c => c.ten.length > 34 ? c.ten.slice(0, 33) + "…" : c.ten),
+        datasets:[{ label:"ms", data:ok.map(c => c.ms), backgroundColor:ok.map(c => c.phan_vung <= 1 ? "#0d9488" : c.phan_vung < 10 ? "#0284c7" : "#f97316"), borderRadius:6 }] },
+      options:{ indexAxis:"y", responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{ display:false } },
+        scales:{ x:{ type:"logarithmic", ticks:{ font:{ size:10 } } }, y:{ ticks:{ font:{ size:10 } } } } } });
+    if (bdPV) bdPV.destroy();
+    const mauPV = t => t.includes("_ht_") ? "#2563eb" : t.includes("_db_") ? "#f97316" : "#db2777";
+    bdPV = new Chart($("#bd-pv"), { type:"bar", data:{ labels:r.phan_vung.map(p => p.ten.replace("ts.gia_tri_pixel_", "")),
+        datasets:[{ label:"số dòng", data:r.phan_vung.map(p => p.so_dong), backgroundColor:r.phan_vung.map(p => mauPV(p.ten)), borderRadius:4 }] },
+      options:{ responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{ display:false } },
+        scales:{ x:{ ticks:{ font:{ size:9 }, maxRotation:60, autoSkip:false } }, y:{ ticks:{ font:{ size:10 } } } } } });
+  } catch (e) { $("#bang-hn").innerHTML = `<div class="ket-qua loi">${esc(e.message)}</div>`; }
+  $("#nut-do").disabled = false; $("#nut-do").textContent = "Chạy kiểm thử";
+}
+$("#nut-do").onclick = doHieuNang;
+</script>
+<script>
+// ================= XUẤT BẢN ĐỒ CHUYÊN ĐỀ A4 (vẽ trên canvas, 300 dpi) =================
+// Thành phần: tên bản đồ, lưới tọa độ địa lý có ghi độ–phút, mũi tên chỉ hướng Bắc, thước tỷ lệ + tỷ lệ số,
+// thang màu – chú giải, thống kê, bảng 10 phường đứng đầu, nguồn dữ liệu.
+const XUAT = { kho:"ngang", canvas:null };
+const DPI = 300, MM = DPI / 25.4;
+function doPhut(v, truc) {
+  const a = Math.abs(v), d = Math.floor(a + 1e-9), m = Math.round((a - d) * 60);
+  const [dd, mm] = m === 60 ? [d + 1, 0] : [d, m];
+  return `${dd}°${String(mm).padStart(2, "0")}'${truc === "x" ? (v >= 0 ? "E" : "W") : (v >= 0 ? "N" : "S")}`;
+}
+function soDep(x) { const e = Math.pow(10, Math.floor(Math.log10(x))), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
+
+function moXuat() {
+  if (!S.ph) return;
+  const ky = S.dsKy[S.iKy];
+  $("#x-ten").value = `BẢN ĐỒ ${TEN_CS_HOA[S.cs]} THÀNH PHỐ HỒ CHÍ MINH`;
+  $("#x-phu").value = `${TEN_LOAI[S.loai]} · ${fmtKy(ky)} · ${S.dv === "phuong" ? "trung bình theo phường/xã" : "ô lưới 500 m"}${S.loai !== "HIEN_TRANG" ? " · " + nhanBo(S.bo) : ""}` +
+                      (locDangBat() ? ` · lọc: ${moTaDK()}` : "");
+  $("#hop-xuat").classList.add("bat");
+  veA4();
+}
+$("#nut-xuat-bd").onclick = moXuat;
+$("#x-ve").onclick = veA4;
+$$("#x-kho button").forEach(b => b.onclick = () => { XUAT.kho = b.dataset.kho; $$("#x-kho button").forEach(x => x.classList.toggle("bat", x === b)); veA4(); });
+["#x-vien", "#x-top", "#x-nhan"].forEach(s => $(s).onchange = veA4);
+
+async function veA4() {
+  await document.fonts.ready;
+  const ngang = XUAT.kho === "ngang";
+  const W = Math.round((ngang ? 297 : 210) * MM), H = Math.round((ngang ? 210 : 297) * MM);
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const g = cv.getContext("2d"), F = '"Be Vietnam Pro", "Segoe UI", Arial, sans-serif';
+  const mm = v => v * MM;
+  const c = csInfo(), t = S.thangHien || { vmin:c.vmin, vmax:c.vmax }, nut = c.mau.map(hex2rgb);
+  const ky = S.dsKy[S.iKy];
+
+  g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+  // khung viền đôi
+  g.strokeStyle = "#1f2d2a"; g.lineWidth = mm(0.8); g.strokeRect(mm(7), mm(7), W - mm(14), H - mm(14));
+  g.lineWidth = mm(0.25); g.strokeRect(mm(8.5), mm(8.5), W - mm(17), H - mm(17));
+
+  // tiêu đề
+  g.fillStyle = "#1f2d2a"; g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.font = `700 ${mm(ngang ? 6.4 : 5.6)}px ${F}`; g.fillText($("#x-ten").value, W / 2, mm(20));
+  g.font = `400 ${mm(3.5)}px ${F}`; g.fillStyle = "#44524d"; g.fillText($("#x-phu").value, W / 2, mm(26.5));
+
+  // vùng bản đồ & vùng chú giải
+  const ben = ngang ? { x:mm(22), y:mm(34), w:W - mm(22) - mm(84), h:H - mm(34) - mm(22) }
+                    : { x:mm(20), y:mm(34), w:W - mm(40), h:mm(176) };
+  const cg = ngang ? { x:ben.x + ben.w + mm(10), y:ben.y, w:mm(66), h:ben.h }
+                   : { x:mm(16), y:ben.y + ben.h + mm(11), w:W - mm(32), h:H - (ben.y + ben.h + mm(11)) - mm(12) };
+
+  // phạm vi = khung bao các phường (+ lề 4%)
+  let w0 = 180, s0 = 90, e0 = -180, n0 = -90;
+  for (const p of Object.values(S.phIdx)) { w0 = Math.min(w0, p.bbox[0][0]); s0 = Math.min(s0, p.bbox[0][1]); e0 = Math.max(e0, p.bbox[1][0]); n0 = Math.max(n0, p.bbox[1][1]); }
+  const padX = (e0 - w0) * 0.04, padY = (n0 - s0) * 0.04; w0 -= padX; e0 += padX; s0 -= padY; n0 += padY;
+  const cosL = Math.cos((s0 + n0) / 2 * Math.PI / 180);
+  const k = Math.min(ben.w / ((e0 - w0) * cosL), ben.h / (n0 - s0));          // px trên 1 độ vĩ
+  const cx = (w0 + e0) / 2, cy = (s0 + n0) / 2;
+  const X = lon => ben.x + ben.w / 2 + (lon - cx) * cosL * k, Y = lat => ben.y + ben.h / 2 - (lat - cy) * k;
+  const lonAt = x => cx + (x - ben.x - ben.w / 2) / (cosL * k), latAt = y => cy - (y - ben.y - ben.h / 2) / k;
+
+  const veHinh = (geom, fill, stroke, lw) => {
+    const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+    g.beginPath();
+    for (const poly of polys) for (const ring of poly) ring.forEach((p, i) => i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1])));
+    if (fill) { g.fillStyle = fill; g.fill("evenodd"); }
+    if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw; g.lineJoin = "round"; g.stroke(); }
+  };
+
+  g.save(); g.beginPath(); g.rect(ben.x, ben.y, ben.w, ben.h); g.clip();
+  g.fillStyle = "#f3f6f8"; g.fillRect(ben.x, ben.y, ben.w, ben.h);            // nền ngoài vùng (biển, tỉnh lân cận)
+  const mauGT = v => rgbCss(mauTai(v, t.vmin, t.vmax, nut));
+  if (S.dv === "luoi" && S.lop) {
+    for (const f of S.phuongHinh.features) veHinh(f.geometry, "#fbfcfb", null, 0);
+    const d = S.lop, [[s, w], [n, e]] = d.bounds, dx = (e - w) / d.w, dy = (n - s) / d.h;
+    for (let i = 0; i < d.v.length; i++) {
+      const v = d.v[i]; if (v === null) continue;
+      const hang = Math.floor(i / d.w), cot = i % d.w, x0 = w + cot * dx, y0 = n - hang * dy;
+      g.fillStyle = thoa({ [S.cs]:v }, S.cs) ? mauGT(v) : "#eef1ef";
+      const a = X(x0), b = Y(y0); g.fillRect(a, b, X(x0 + dx) - a + 0.6, Y(y0 - dy) - b + 0.6);
+    }
+  } else {
+    for (const f of S.phuongHinh.features) {
+      const r = S.ph.theoId[f.id], v = r ? r[S.cs] : null;
+      veHinh(f.geometry, v == null ? "#d9dfdb" : (r.ok ? mauGT(v) : "#eef1ef"), null, 0);
+    }
+  }
+  if ($("#x-vien").checked) for (const f of S.phuongHinh.features) veHinh(f.geometry, null, "rgba(55,68,63,.55)", mm(0.12));
+  const vung = S.tq.vung[0];
+  if (vung) veHinh(vung.geojson, null, "#5c1f16", mm(0.45));
+
+  // lưới tọa độ
+  const buoc = (e0 - w0) > 1.2 ? 0.2 : (e0 - w0) > 0.5 ? 0.1 : 0.05;
+  const lonA = lonAt(ben.x), lonB = lonAt(ben.x + ben.w), latA = latAt(ben.y + ben.h), latB = latAt(ben.y);
+  const dsLon = [], dsLat = [];
+  for (let v = Math.ceil(lonA / buoc) * buoc; v <= lonB; v += buoc) dsLon.push(+v.toFixed(4));
+  for (let v = Math.ceil(latA / buoc) * buoc; v <= latB; v += buoc) dsLat.push(+v.toFixed(4));
+  g.strokeStyle = "rgba(31,45,42,.35)"; g.lineWidth = mm(0.15); g.setLineDash([mm(1.2), mm(1)]);
+  dsLon.forEach(v => { g.beginPath(); g.moveTo(X(v), ben.y); g.lineTo(X(v), ben.y + ben.h); g.stroke(); });
+  dsLat.forEach(v => { g.beginPath(); g.moveTo(ben.x, Y(v)); g.lineTo(ben.x + ben.w, Y(v)); g.stroke(); });
+  g.setLineDash([]);
+
+  // nhãn 10 phường đứng đầu
+  const dsCo = Object.values(S.ph.theoId).filter(r => r[S.cs] != null && r.ok).sort((a, b) => CHIEU_XH[S.cs] * (a[S.cs] - b[S.cs]));
+  const top = dsCo.slice(0, 10);
+  if ($("#x-nhan").checked) {
+    g.font = `700 ${mm(2.2)}px ${F}`; g.textAlign = "center"; g.textBaseline = "middle";
+    top.slice().reverse().forEach(r => { const p = S.phIdx[r.id]; if (!p) return;       // số thứ tự trong vòng tròn – tên ở bảng bên cạnh
+      const i = top.indexOf(r), x = X(p.lon), y = Y(p.lat);
+      g.beginPath(); g.arc(x, y, mm(1.9), 0, 2 * Math.PI); g.fillStyle = "#fff"; g.fill();
+      g.lineWidth = mm(0.3); g.strokeStyle = "#1f2d2a"; g.stroke();
+      g.fillStyle = "#1f2d2a"; g.fillText(String(i + 1), x, y + mm(0.1)); });
+  }
+
+  // mũi tên chỉ hướng Bắc (la bàn)
+  const nx = ben.x + ben.w - mm(14), ny = ben.y + mm(16), r0 = mm(8);
+  g.fillStyle = "rgba(255,255,255,.85)"; g.beginPath(); g.arc(nx, ny, r0 + mm(3.5), 0, 2 * Math.PI); g.fill();
+  g.strokeStyle = "#1f2d2a"; g.lineWidth = mm(0.25); g.beginPath(); g.arc(nx, ny, r0, 0, 2 * Math.PI); g.stroke();
+  for (let a = 0; a < 4; a++) {                                    // hoa gió 4 cánh
+    const goc = a * Math.PI / 2, dai = a === 0 ? r0 * 1.15 : r0 * 0.8;
+    const p = (rr, gg) => [nx + rr * Math.sin(gg), ny - rr * Math.cos(gg)];
+    const [ax, ay] = p(dai, goc), [lx, ly] = p(r0 * 0.22, goc - Math.PI / 2), [rx, ry] = p(r0 * 0.22, goc + Math.PI / 2);
+    g.beginPath(); g.moveTo(ax, ay); g.lineTo(lx, ly); g.lineTo(nx, ny); g.closePath(); g.fillStyle = "#1f2d2a"; g.fill();
+    g.beginPath(); g.moveTo(ax, ay); g.lineTo(rx, ry); g.lineTo(nx, ny); g.closePath(); g.fillStyle = "#fff"; g.fill(); g.stroke();
+  }
+  g.fillStyle = "#1f2d2a"; g.font = `700 ${mm(3.6)}px ${F}`; g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.fillText("B", nx, ny - r0 * 1.15 - mm(1.2));
+
+  // thước tỷ lệ
+  const kmPx = (111.32 * cosL) / (cosL * k);                     // km trên 1 px theo phương ngang
+  const dai = soDep(kmPx * ben.w * 0.22), dPx = dai / kmPx;
+  const sx = ben.x + mm(8), sy = ben.y + ben.h - mm(10), cao = mm(1.8);
+  g.fillStyle = "rgba(255,255,255,.85)"; g.fillRect(sx - mm(4), sy - mm(9), dPx + mm(16), mm(16));
+  for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? "#fff" : "#1f2d2a"; g.fillRect(sx + i * dPx / 4, sy, dPx / 4, cao); }
+  g.strokeStyle = "#1f2d2a"; g.lineWidth = mm(0.2); g.strokeRect(sx, sy, dPx, cao);
+  g.fillStyle = "#1f2d2a"; g.font = `400 ${mm(2.4)}px ${F}`; g.textAlign = "center";
+  [0, 0.5, 1].forEach(f => g.fillText(String(+(dai * f).toFixed(1)), sx + dPx * f, sy - mm(1.2)));
+  g.textAlign = "left"; g.fillText("km", sx + dPx + mm(1.5), sy + cao);
+  const tl = kmPx * MM * 1e6, lam = Math.pow(10, Math.floor(Math.log10(tl)) - 1);
+  g.fillText(`Tỷ lệ ≈ 1:${(Math.round(tl / lam) * lam).toLocaleString("vi-VN")}`, sx, sy + cao + mm(4));
+  g.restore();
+
+  // viền khung bản đồ + nhãn tọa độ ngoài khung
+  g.strokeStyle = "#1f2d2a"; g.lineWidth = mm(0.4); g.strokeRect(ben.x, ben.y, ben.w, ben.h);
+  g.fillStyle = "#1f2d2a"; g.font = `400 ${mm(2.4)}px ${F}`;
+  dsLon.forEach(v => { const x = X(v);
+    g.beginPath(); g.moveTo(x, ben.y); g.lineTo(x, ben.y - mm(1.2)); g.moveTo(x, ben.y + ben.h); g.lineTo(x, ben.y + ben.h + mm(1.2)); g.stroke();
+    g.textAlign = "center"; g.textBaseline = "bottom"; g.fillText(doPhut(v, "x"), x, ben.y - mm(1.6));
+    g.textBaseline = "top"; g.fillText(doPhut(v, "x"), x, ben.y + ben.h + mm(1.6)); });
+  dsLat.forEach(v => { const y = Y(v);
+    g.beginPath(); g.moveTo(ben.x, y); g.lineTo(ben.x - mm(1.2), y); g.moveTo(ben.x + ben.w, y); g.lineTo(ben.x + ben.w + mm(1.2), y); g.stroke();
+    g.save(); g.translate(ben.x - mm(1.8), y); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.textBaseline = "bottom"; g.fillText(doPhut(v, "y"), 0, 0); g.restore();
+    g.save(); g.translate(ben.x + ben.w + mm(1.8), y); g.rotate(Math.PI / 2); g.textAlign = "center"; g.textBaseline = "bottom"; g.fillText(doPhut(v, "y"), 0, 0); g.restore(); });
+
+  // ---------------- khối chú giải ----------------
+  // A4 ngang: 1 cột bên phải bản đồ · A4 dọc: 3 cột dưới bản đồ (chú giải | thống kê + nguồn | 10 phường)
+  const cot = ngang ? [{ x:cg.x, w:cg.w }, { x:cg.x, w:cg.w }, { x:cg.x, w:cg.w }]
+                    : [{ x:cg.x, w:mm(62) }, { x:cg.x + mm(68), w:mm(50) }, { x:cg.x + mm(124), w:cg.w - mm(124) }];
+  let y = cg.y + mm(1), C0 = cot[0];
+  const tieuDe = (s, C) => { g.fillStyle = "#1f2d2a"; g.font = `700 ${mm(3.2)}px ${F}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+                             g.fillText(s, C.x, y + mm(3)); y += mm(4.3); g.fillStyle = "#2f7d6d"; g.fillRect(C.x, y, mm(14), mm(0.5)); y += mm(3.6); };
+  const dong = (s, C, dam, co = 2.6) => { g.fillStyle = "#1f2d2a"; g.font = `${dam ? 600 : 400} ${mm(co)}px ${F}`; g.textAlign = "left"; g.fillText(s, C.x, y + mm(co)); y += mm(co * 1.5); };
+  const ngat = (s, maxW) => { const tu = s.split(" "), kq = []; let d = "";
+    for (const w of tu) { const thu = d ? d + " " + w : w; if (g.measureText(thu).width > maxW && d) { kq.push(d); d = w; } else d = thu; } if (d) kq.push(d); return kq; };
+
+  // (A) thang màu + ký hiệu
+  tieuDe("CHÚ GIẢI", C0);
+  dong(`${TEN_CS[S.cs]}${S.cs === "LST" ? " (°C)" : ""}`, C0, true);
+  const thanhH = ngang ? mm(36) : mm(6), thanhW = ngang ? mm(6) : C0.w - mm(4), y0 = y + mm(1);
+  const grd = ngang ? g.createLinearGradient(0, y0 + thanhH, 0, y0) : g.createLinearGradient(C0.x, 0, C0.x + thanhW, 0);
+  c.mau.forEach((m, i) => grd.addColorStop(i / (c.mau.length - 1), m));
+  g.fillStyle = grd; g.fillRect(C0.x, y0, thanhW, thanhH); g.strokeStyle = "#5b6b66"; g.lineWidth = mm(0.2); g.strokeRect(C0.x, y0, thanhW, thanhH);
+  g.font = `400 ${mm(2.4)}px ${F}`; g.fillStyle = "#1f2d2a";
+  for (let i = 0; i <= 4; i++) {
+    const v = t.vmin + (t.vmax - t.vmin) * i / 4, lbl = fmtG(v, S.cs);
+    if (ngang) { const yy = y0 + thanhH - thanhH * i / 4; g.textAlign = "left"; g.textBaseline = "middle";
+      g.beginPath(); g.moveTo(C0.x + thanhW, yy); g.lineTo(C0.x + thanhW + mm(1), yy); g.stroke(); g.fillText(lbl, C0.x + thanhW + mm(1.8), yy); }
+    else { const xx = C0.x + thanhW * i / 4; g.textAlign = i === 0 ? "left" : i === 4 ? "right" : "center"; g.textBaseline = "top"; g.fillText(lbl, xx, y0 + thanhH + mm(1)); }
+  }
+  g.textBaseline = "alphabetic";
+  // ký hiệu: A4 ngang đặt cạnh thang màu, A4 dọc đặt dưới thang màu
+  let ky_x = ngang ? C0.x + mm(22) : C0.x, ky_y = ngang ? y0 : y0 + thanhH + mm(6);
+  const kyHieu = (ve, s) => { ve(ky_x, ky_y); g.fillStyle = "#1f2d2a"; g.font = `400 ${mm(2.45)}px ${F}`; g.textAlign = "left"; g.fillText(s, ky_x + mm(9), ky_y + mm(2.5)); ky_y += mm(4.8); };
+  kyHieu((x, yy) => { g.fillStyle = "#d9dfdb"; g.fillRect(x, yy, mm(7), mm(3.4)); }, "Không có dữ liệu");
+  if (locDangBat()) kyHieu((x, yy) => { g.fillStyle = "#eef1ef"; g.fillRect(x, yy, mm(7), mm(3.4)); g.strokeStyle = "#c9d1cc"; g.lineWidth = mm(0.2); g.strokeRect(x, yy, mm(7), mm(3.4)); }, "Không thỏa ngưỡng");
+  kyHieu((x, yy) => { g.strokeStyle = "rgba(55,68,63,.8)"; g.lineWidth = mm(0.25); g.beginPath(); g.moveTo(x, yy + mm(1.7)); g.lineTo(x + mm(7), yy + mm(1.7)); g.stroke(); }, "Ranh giới phường, xã");
+  kyHieu((x, yy) => { g.strokeStyle = "#5c1f16"; g.lineWidth = mm(0.6); g.beginPath(); g.moveTo(x, yy + mm(1.7)); g.lineTo(x + mm(7), yy + mm(1.7)); g.stroke(); }, "Ranh giới vùng nghiên cứu");
+  if (locDangBat()) { g.font = `400 ${mm(2.2)}px ${F}`; g.fillStyle = "#55635e";
+    ngat("Ngưỡng: " + moTaDK(), ngang ? cg.w - mm(22) : C0.w).forEach(l => { g.fillText(l, ky_x, ky_y + mm(2)); ky_y += mm(3); }); }
+  y = ngang ? Math.max(y0 + thanhH, ky_y) + mm(5) : cg.y + mm(1);
+
+  // (B) thống kê
+  const C1 = cot[1];
+  const giaTri = Object.values(S.ph.theoId).map(r => r[S.cs]).filter(v => v != null);
+  if (giaTri.length) {
+    tieuDe("THỐNG KÊ", C1);
+    dong(`Trung bình: ${fmt(giaTri.reduce((a, b) => a + b, 0) / giaTri.length, S.cs)}`, C1);
+    dong(`Thấp nhất: ${fmt(Math.min(...giaTri), S.cs)}`, C1);
+    dong(`Cao nhất: ${fmt(Math.max(...giaTri), S.cs)}`, C1);
+    dong(`Phường/xã có dữ liệu: ${giaTri.length}/${S.phuongHinh.features.length}`, C1);
+    y += mm(2.5);
+  }
+  // nguồn dữ liệu (A4 ngang: chân cột; A4 dọc: dưới thống kê)
+  const nguon = [
+    S.loai === "HIEN_TRANG" ? "Ảnh Landsat 8/9 Collection 2 Level-2 (USGS), xử lý trên Google Earth Engine" :
+      S.loai === "DU_BAO" ? `Dự báo bằng mô hình ${S.bo.mo_hinh || ""} (học từ chuỗi Landsat 2015 – nay)` : `Giả lập kịch bản ${S.bo.kich_ban || ""}`,
+    "Ranh giới phường, xã 2025: Cục Đo đạc, Bản đồ và Thông tin địa lý Việt Nam",
+    "Hệ tọa độ WGS 84; dữ liệu ô lưới 500 m UTM 48N",
+    `Lập ngày ${new Date().toLocaleDateString("vi-VN")}`];
+  g.font = `400 ${mm(2.1)}px ${F}`;
+  const dongNguon = nguon.flatMap(s => ngat("• " + s, C1.w - mm(1)));
+  const caoNguon = mm(3.6) + dongNguon.length * mm(2.9);
+  let yN = ngang ? cg.y + cg.h - caoNguon : y;
+  const yHetTop = ngang ? yN - mm(3) : cg.y + cg.h;
+  g.font = `700 ${mm(2.5)}px ${F}`; g.fillStyle = "#1f2d2a"; g.textAlign = "left"; g.fillText("Nguồn dữ liệu", C1.x, yN + mm(2.5));
+  g.font = `400 ${mm(2.1)}px ${F}`; g.fillStyle = "#55635e"; yN += mm(5.6);
+  dongNguon.forEach(l => { g.fillText(l, C1.x, yN); yN += mm(2.9); });
+
+  // (C) 10 phường đứng đầu
+  if ($("#x-top").checked && top.length) {
+    const C2 = cot[2];
+    if (!ngang) y = cg.y + mm(1);
+    tieuDe(`10 PHƯỜNG/XÃ ${S.cs === "NDVI" ? "NDVI THẤP NHẤT" : S.cs + " CAO NHẤT"}`, C2);
+    const buocD = mm(3.5), vua = Math.max(0, Math.min(top.length, Math.floor((yHetTop - y) / buocD)));
+    g.font = `400 ${mm(2.4)}px ${F}`;
+    top.slice(0, vua).forEach((r, i) => { const p = S.phIdx[r.id];
+      g.fillStyle = "#1f2d2a"; g.textAlign = "left"; g.fillText(`${i + 1}. ${p ? p.ten : r.id}`, C2.x, y + mm(2.4));
+      g.textAlign = "right"; g.fillText(fmtG(r[S.cs], S.cs), C2.x + C2.w - mm(1), y + mm(2.4)); y += buocD; });
+  }
+
+  XUAT.canvas = cv;
+  $("#x-anh").src = cv.toDataURL("image/jpeg", 0.85);
+}
+
+// PNG kèm thông tin 300 dpi (khối pHYs) để Word chèn đúng kích thước A4
+function crc32(buf) { let c, crc = 0xffffffff; for (let n = 0; n < buf.length; n++) { c = (crc ^ buf[n]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xffffffff) >>> 0; }
+async function pngDpi(blob, dpi) {
+  const b = new Uint8Array(await blob.arrayBuffer()), ppm = Math.round(dpi / 0.0254);
+  const chunk = new Uint8Array(21), dv = new DataView(chunk.buffer);
+  dv.setUint32(0, 9); chunk.set([0x70, 0x48, 0x59, 0x73], 4); dv.setUint32(8, ppm); dv.setUint32(12, ppm); chunk[16] = 1;
+  dv.setUint32(17, crc32(chunk.subarray(4, 17)));
+  const out = new Uint8Array(b.length + 21); out.set(b.subarray(0, 33)); out.set(chunk, 33); out.set(b.subarray(33), 54);
+  return new Blob([out], { type:"image/png" });
+}
+$("#x-png").onclick = () => {
+  if (!XUAT.canvas) return;
+  XUAT.canvas.toBlob(async b => taiVe(await pngDpi(b, DPI), `ban_do_${S.cs}_${S.dsKy[S.iKy].slice(0, 7)}_${S.dv}_${XUAT.kho}.png`), "image/png");
+};
+$("#x-in").onclick = () => {
+  if (!XUAT.canvas) return;
+  const w = window.open("", "_blank");
+  w.document.write(`<!doctype html><title>Bản đồ ${S.cs}</title><style>@page{size:A4 ${XUAT.kho === "ngang" ? "landscape" : "portrait"};margin:0}
+    html,body{margin:0}img{width:100%;display:block}</style><img src="${XUAT.canvas.toDataURL("image/png")}" onload="setTimeout(()=>print(),300)">`);
+  w.document.close();
+};
+</script>
+
+<script>
+// ================= BẢN TIN & XUẤT BÁO CÁO =================
+const CS3 = ["LST", "NDVI", "TVDI"];
+const NGUONG_BT = { LST:{ dk:"gt", gt:38, nhan:"LST > 38 °C", y:"bề mặt nóng" },
+                    NDVI:{ dk:"lt", gt:0.2, nhan:"NDVI < 0,2", y:"ít cây xanh" },
+                    TVDI:{ dk:"gt", gt:0.6, nhan:"TVDI > 0,6", y:"khô hạn" } };
+const BT = { daTai:false, bd:{}, du:null };
+const soVN = (v, cs) => v == null || isNaN(v) ? "–" : (cs === "LST" ? Number(v).toFixed(2) : Number(v).toFixed(3)).replace(".", ",");
+const soVNd = (v, cs) => (v > 0 ? "+" : "") + soVN(v, cs);
+const vuot = (v, cs) => v != null && (NGUONG_BT[cs].dk === "gt" ? v > NGUONG_BT[cs].gt : v < NGUONG_BT[cs].gt);
+const congThang = (k, n) => { const d = new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1 + n, 1)); return d.toISOString().slice(0, 10); };
+function boHT() { return boTheoMa("HT_GEE_THANG") || S.tq.bo_du_lieu.find(b => b.loai === "HIEN_TRANG"); }
+function boDuBaoTot(cs) {
+  const ds = S.tq.bo_du_lieu.filter(b => b.loai === "DU_BAO" && b.chi_so_du_bao === cs && tanSuat(b) === "THANG" && !b.ma.startsWith("TL_"));
+  if (!ds.length) return null;
+  const moi = ds.reduce((m, b) => (b.tu_ky || "") > m ? b.tu_ky : m, "");
+  const dsMoi = ds.filter(b => b.tu_ky === moi);
+  const xh = (S.moHinhRows || []).filter(r => r.chi_so === cs && r.tap === "TEST" && r.rmse != null && r.mo_hinh !== "SEASONAL_NAIVE")
+    .sort((a, b) => a.rmse - b.rmse);
+  // ưu tiên chỉ tiêu của ĐÚNG lần chạy sinh ra bộ dự báo (lan_chay = mã bộ bỏ tiền tố DB_)
+  const cungLan = xh.filter(r => dsMoi.some(b => b.ma === "DB_" + r.lan_chay));
+  for (const r of cungLan) { const b = dsMoi.find(x => x.ma === "DB_" + r.lan_chay); if (b) return { bo:b, rmse:r.rmse, r2:r.r2 }; }
+  for (const r of xh) { const b = dsMoi.find(x => x.mo_hinh === r.mo_hinh); if (b) return { bo:b, rmse:r.rmse, r2:r.r2 }; }
+  return { bo:dsMoi.find(b => b.mo_hinh !== "SEASONAL_NAIVE") || dsMoi[0] };
+}
+const boNgayMoi = cs => moiNhat(S.tq.bo_du_lieu.filter(b => b.loai === "DU_BAO" && b.chi_so_du_bao === cs && tanSuat(b) === "NGAY"));
+
+async function moBanTin() {
+  try {
+    if (!BT.daTai) {
+      const ht = boHT(); if (!ht) throw new Error("CSDL chưa có dữ liệu hiện trạng");
+      if (!S.moHinhRows) S.moHinhRows = await api("/api/mo_hinh");
+      const [dsk, ...ch] = await Promise.all([api(`/api/ky?bo=${ht.id}&cs=LST`), ...CS3.map(cs => api(`/api/chuoi_vung?cs=${cs}&vung=0`))]);
+      BT.chuoi = Object.fromEntries(CS3.map((cs, i) => [cs, ch[i]]));
+      const maxO = Math.max(0, ...dsk.map(r => r.so_o || 0));
+      BT.phu = Object.fromEntries(dsk.map(r => [r.ky, r.so_o && r.tong_o ? r.so_o / r.tong_o : null]));
+      const tot = dsk.filter(r => maxO && (r.so_o || 0) >= 0.9 * maxO);
+      $("#bt-ky").innerHTML = dsk.slice().reverse().map(r => `<option value="${r.ky}">Tháng ${kyThang(r.ky)}${BT.phu[r.ky] != null ? ` · ${Math.round(100 * BT.phu[r.ky])}% diện tích có ảnh` : ""}</option>`).join("");
+      $("#bt-ky").value = (tot[tot.length - 1] || dsk[dsk.length - 1] || {}).ky;
+      BT.daTai = true;
+    }
+    await veBanTin();
+  } catch (e) { $("#bt-meta").textContent = "Không tạo được bản tin: " + e.message; console.error(e); }
+}
+$("#bt-ky").onchange = () => veBanTin().catch(e => alert(e.message));
+
+function chuoiBo(cs, ma) {
+  const m = {}; (BT.chuoi[cs] || []).filter(r => r.bo === ma).forEach(r => m[r.ky] = r); return m;
+}
+async function veBanTin() {
+  const ky = $("#bt-ky").value, ht = boHT(); if (!ky) return;
+  $("#bt-meta").textContent = "Đang tổng hợp…";
+  const db = Object.fromEntries(CS3.map(cs => [cs, boDuBaoTot(cs)]));
+  const ng = Object.fromEntries(CS3.map(cs => [cs, boNgayMoi(cs)]));
+  const ph = await api(`/api/phuong?bo=${ht.id}&ky=${ky}`);
+  const phDB = {};
+  await Promise.all(CS3.map(async cs => { if (!db[cs]) return;
+    const d = await api(`/api/phuong?bo=${db[cs].bo.id}&ky=${db[cs].bo.tu_ky}`);
+    phDB[cs] = Object.fromEntries(d.rows.map(r => [r.id, r[cs]])); }));
+  const rows = ph.rows.filter(r => S.phIdx[r.id]).map(r => ({ ...r, ten:S.phIdx[r.id].ten }));
+  const giaTri = cs => Object.fromEntries(rows.map(r => [r.id, r[cs]]));
+  const tbVung = {}, tbTruoc = {};
+  CS3.forEach(cs => { const m = chuoiBo(cs, ht.ma); tbVung[cs] = m[ky] ? m[ky].tb : null; tbTruoc[cs] = m[congThang(ky, -12)] ? m[congThang(ky, -12)].tb : null; });
+  const dem = Object.fromEntries(CS3.map(cs => [cs, rows.filter(r => vuot(r[cs], cs))]));
+  const ca3 = rows.filter(r => CS3.every(cs => vuot(r[cs], cs)));
+  const top = Object.fromEntries(CS3.map(cs => [cs, rows.filter(r => r[cs] != null).sort((a, b) => CHIEU_XH[cs] * (a[cs] - b[cs])).slice(0, 10)]));
+  // tương quan LST–NDVI giữa các phường
+  const cap = rows.filter(r => r.LST != null && r.NDVI != null);
+  const tb = a => a.reduce((s, x) => s + x, 0) / (a.length || 1);
+  const mx = tb(cap.map(r => r.LST)), my = tb(cap.map(r => r.NDVI));
+  const rLN = cap.reduce((s, r) => s + (r.LST - mx) * (r.NDVI - my), 0) /
+              Math.sqrt(cap.reduce((s, r) => s + (r.LST - mx) ** 2, 0) * cap.reduce((s, r) => s + (r.NDVI - my) ** 2, 0) || 1);
+  // chuỗi dự báo
+  const c12 = {}, c7 = {};
+  CS3.forEach(cs => {
+    const h = chuoiBo(cs, ht.ma), f = db[cs] ? chuoiBo(cs, db[cs].bo.ma) : {}, n = ng[cs] ? chuoiBo(cs, ng[cs].ma) : {};
+    const kyF = Object.keys(f).sort(), kyH = Object.keys(h).sort().filter(k => k <= ky).slice(-24);
+    c12[cs] = { kyH, kyF, h, f }; c7[cs] = { ky:Object.keys(n).sort(), n };
+  });
+  const homNay = new Date().toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+  const k12 = c12.LST.kyF, k7 = c7.LST.ky;
+  BT.du = { ky, ht, db, ng, rows, tbVung, tbTruoc, dem, ca3, top, rLN, c12, c7, phDB, homNay };
+  $("#bt-meta").innerHTML = `Phát hành ngày ${homNay} · Số liệu hiện trạng: <b>tháng ${kyThang(ky)}</b> (Landsat 8/9 qua Google Earth Engine${BT.phu[ky] != null ? `, ${Math.round(100 * BT.phu[ky])}% diện tích có ảnh không mây` : ""})`
+    + (k12.length ? ` · Dự báo AI: <b>${kyThang(k12[0])} – ${kyThang(k12[k12.length - 1])}</b>` : "")
+    + (k7.length ? ` · Dự báo ngày (giả lập): <b>${kyNgay(k7[0])} – ${kyNgay(k7[k7.length - 1])}/${k7[k7.length - 1].slice(0, 4)}</b>` : "")
+    + ` · Phạm vi: 167 phường/xã phần đất liền TP.HCM, lưới 500 m`;
+  // ---- tóm tắt ----
+  const tt = BT.tomTat = [];
+  const doi = cs => tbTruoc[cs] != null && tbVung[cs] != null ? ` (${tbVung[cs] > tbTruoc[cs] ? "tăng" : "giảm"} ${soVN(Math.abs(tbVung[cs] - tbTruoc[cs]), cs)}${cs === "LST" ? " °C" : ""} so với tháng ${kyThang(congThang(ky, -12))})` : "";
+  const ten3 = a => a.slice(0, 3).map(r => r.ten).join(", ");
+  tt.push(`Tháng ${kyThang(ky)}, nhiệt độ bề mặt (LST) trung bình toàn vùng ${soVN(tbVung.LST, "LST")} °C${doi("LST")}; nóng nhất là ${ten3(top.LST)}. Có ${dem.LST.length} phường/xã có ${NGUONG_BT.LST.nhan}.`);
+  tt.push(`Lớp phủ thực vật (NDVI) trung bình ${soVN(tbVung.NDVI, "NDVI")}${doi("NDVI")}; ${dem.NDVI.length} phường/xã có ${NGUONG_BT.NDVI.nhan} (ít cây xanh), thấp nhất là ${ten3(top.NDVI)}.`);
+  tt.push(`Mức độ khô hạn (TVDI) trung bình ${soVN(tbVung.TVDI, "TVDI")}${doi("TVDI")}; ${dem.TVDI.length} phường/xã có ${NGUONG_BT.TVDI.nhan} (khô hạn), cao nhất là ${ten3(top.TVDI)}.`);
+  tt.push(`${ca3.length} phường/xã đồng thời nóng – ít cây xanh – khô hạn${ca3.length ? ": " + ca3.slice(0, 8).map(r => r.ten).join(", ") + (ca3.length > 8 ? ` và ${ca3.length - 8} phường/xã khác` : "") : ""}. Tương quan LST – NDVI giữa các phường r = ${rLN.toFixed(2).replace(".", ",")} (${rLN < 0 ? "nơi nhiều cây xanh mát hơn" : "không thể hiện hiệu ứng làm mát rõ"}).`);
+  CS3.forEach(cs => { const c = c12[cs]; if (!c.kyF.length) return;
+    const v = c.kyF.map(k => c.f[k].tb), iM = v.indexOf(Math.max(...v)), im = v.indexOf(Math.min(...v));
+    tt.push(`Dự báo AI ${cs} ${kyThang(c.kyF[0])} – ${kyThang(c.kyF[c.kyF.length - 1])} (mô hình ${db[cs].bo.mo_hinh}${db[cs].rmse != null ? `, RMSE kiểm tra ${soVN(db[cs].rmse, cs)}` : ""}): dao động ${soVN(v[im], cs)} – ${soVN(v[iM], cs)}${cs === "LST" ? " °C" : ""}, cao nhất tháng ${kyThang(c.kyF[iM])}, thấp nhất tháng ${kyThang(c.kyF[im])}.`); });
+  if (k7.length) { const v = k7.map(k => c7.LST.n[k].tb);
+    tt.push(`Dự báo 7 ngày (${kyNgay(k7[0])} – ${kyNgay(k7[k7.length - 1])}, GIẢ LẬP): LST trung bình toàn vùng ${soVN(Math.min(...v), "LST")} – ${soVN(Math.max(...v), "LST")} °C.`); }
+  $("#bt-tom-tat").innerHTML = tt.map(x => `<li>${esc(x)}</li>`).join("");
+  // ---- KPI ----
+  BT.kpi = [
+    ...CS3.map(cs => ({ v:soVN(tbVung[cs], cs) + (cs === "LST" ? " °C" : ""), t:`${cs} trung bình toàn vùng`,
+      d:tbTruoc[cs] != null && tbVung[cs] != null ? tbVung[cs] - tbTruoc[cs] : null, cs })),
+    ...CS3.map(cs => ({ v:`${dem[cs].length}/${rows.length}`, t:`Phường/xã ${NGUONG_BT[cs].nhan}` })) ];
+  $("#bt-kpi").innerHTML = BT.kpi.map(k => `<div><b>${k.v}</b><span>${esc(k.t)}${k.d != null ? ` · <em class="${(k.cs === "NDVI" ? -k.d : k.d) > 0 ? "tang" : "giam"}">${soVNd(k.d, k.cs)} so với cùng kỳ</em>` : ""}</span></div>`).join("");
+  // ---- bản đồ ----
+  $("#bt-h2-ky").textContent = `tháng ${kyThang(ky)} · trung bình ô lưới 500 m trong từng phường/xã`;
+  CS3.forEach(cs => veBdCanvas($("#bt-bd-" + cs), giaTri(cs), cs, `${TEN_CS_HOA[cs]}`, `Hiện trạng tháng ${kyThang(ky)}`));
+  $("#bt-bd-db-khoi").style.display = Object.keys(phDB).length ? "" : "none";
+  CS3.forEach(cs => { if (phDB[cs]) veBdCanvas($("#bt-db-" + cs), phDB[cs], cs, `${TEN_CS_HOA[cs]}`, `Dự báo tháng ${kyThang(db[cs].bo.tu_ky)} · mô hình ${db[cs].bo.mo_hinh}`); });
+  // ---- xếp hạng ----
+  $("#bt-top").innerHTML = CS3.map(cs => `<div><h4>${cs} ${CHIEU_XH[cs] < 0 ? "cao nhất" : "thấp nhất"}${phDB[cs] ? ` <small class="ghi-chu">· cột DB: dự báo ${kyThang(db[cs].bo.tu_ky)}</small>` : ""}</h4>
+    <table><thead><tr><th>#</th><th>Phường/xã</th><th>${cs}</th>${phDB[cs] ? "<th>DB</th>" : ""}</tr></thead><tbody>${
+    top[cs].map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.ten)}</td><td>${soVN(r[cs], cs)}</td>${phDB[cs] ? `<td>${soVN(phDB[cs][r.id], cs)}</td>` : ""}</tr>`).join("")}</tbody></table></div>`).join("");
+  // ---- biểu đồ ----
+  Object.values(BT.bd).forEach(c => c.destroy()); BT.bd = {};
+  const nenTrang = { id:"nenTrang", beforeDraw:c => { const g = c.ctx; g.save(); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.restore(); } };
+  const tuyChon = (cs, td) => ({ devicePixelRatio:2, responsive:true, maintainAspectRatio:false, animation:false, interaction:{ mode:"index", intersect:false },
+    plugins:{ title:{ display:true, text:td, font:{ size:12, weight:"600" }, color:"#1f2d2a" }, legend:{ position:"bottom", labels:{ boxWidth:10, font:{ size:10 } } } },
+    scales:{ x:{ ticks:{ font:{ size:9.5 }, maxRotation:0, autoSkip:true, maxTicksLimit:8 }, grid:{ display:false } },
+             y:{ ticks:{ font:{ size:9.5 } }, title:{ display:true, text:cs + (cs === "LST" ? " (°C)" : ""), font:{ size:10 } } } } });
+  $("#bt-h4").textContent = k12.length ? `${kyThang(k12[0])} – ${kyThang(k12[k12.length - 1])} · mô hình tốt nhất theo RMSE trên tập kiểm tra` : "chưa có kết quả dự báo";
+  CS3.forEach(cs => { const c = c12[cs], nhan = [...new Set([...c.kyH, ...c.kyF])].sort();
+    BT.bd["c12" + cs] = new Chart($("#bt-c12-" + cs), { type:"line", plugins:[nenTrang], data:{ labels:nhan.map(kyThang), datasets:[
+      { label:"Hiện trạng", data:nhan.map(k => c.h[k] ? c.h[k].tb : null), borderColor:MAU_LOAI.HIEN_TRANG, backgroundColor:MAU_LOAI.HIEN_TRANG, borderWidth:2, pointRadius:1.5, spanGaps:true },
+      { label:"Dự báo " + (db[cs] ? db[cs].bo.mo_hinh : ""), data:nhan.map(k => c.f[k] ? c.f[k].tb : null), borderColor:MAU_LOAI.DU_BAO, backgroundColor:MAU_LOAI.DU_BAO, borderDash:[5, 3], borderWidth:2, pointRadius:2 },
+      { label:"_p90", data:nhan.map(k => c.f[k] ? c.f[k].p90 : null), borderWidth:0, pointRadius:0, backgroundColor:"rgba(224,130,58,.15)", fill:"+1" },
+      { label:"_p10", data:nhan.map(k => c.f[k] ? c.f[k].p10 : null), borderWidth:0, pointRadius:0 } ] },
+      options:{ ...tuyChon(cs, `${TEN_CS[cs]} – 24 tháng gần nhất & 12 tháng dự báo`),
+        plugins:{ ...tuyChon(cs, "").plugins, title:{ display:true, text:`${cs}: hiện trạng & dự báo AI theo tháng`, font:{ size:12, weight:"600" }, color:"#1f2d2a" },
+          legend:{ position:"bottom", labels:{ boxWidth:10, font:{ size:10 }, filter:i => !i.text.startsWith("_") } }, tooltip:{ filter:i => !i.dataset.label.startsWith("_") } } } });
+    const n = c7[cs];
+    BT.bd["c7" + cs] = new Chart($("#bt-c7-" + cs), { type:"line", plugins:[nenTrang], data:{ labels:n.ky.map(kyNgay), datasets:[
+      { label:"Trung bình toàn vùng", data:n.ky.map(k => n.n[k].tb), borderColor:"#c2410c", backgroundColor:"#c2410c", borderWidth:2, pointRadius:3 },
+      { label:"_p90", data:n.ky.map(k => n.n[k].p90), borderWidth:0, pointRadius:0, backgroundColor:"rgba(194,65,12,.12)", fill:"+1" },
+      { label:"_p10", data:n.ky.map(k => n.n[k].p10), borderWidth:0, pointRadius:0 } ] },
+      options:{ ...tuyChon(cs, ""), plugins:{ title:{ display:true, text:`${cs}: dự báo 7 ngày (giả lập)`, font:{ size:12, weight:"600" }, color:"#1f2d2a" },
+        legend:{ position:"bottom", labels:{ boxWidth:10, font:{ size:10 }, filter:i => !i.text.startsWith("_") } }, tooltip:{ filter:i => !i.dataset.label.startsWith("_") } } } });
+  });
+  // ---- bảng ----
+  const bang = (ds, nhanKy, lay) => `<table><thead><tr><th>Kỳ</th>${CS3.map(cs => `<th>${cs} TB${cs === "LST" ? " (°C)" : ""}</th><th>${cs} P10 – P90</th>`).join("")}</tr></thead><tbody>${
+    ds.map(k => `<tr><td>${nhanKy(k)}</td>${CS3.map(cs => { const r = lay(cs)[k]; return r ? `<td>${soVN(r.tb, cs)}</td><td>${soVN(r.p10, cs)} – ${soVN(r.p90, cs)}</td>` : "<td>–</td><td>–</td>"; }).join("")}</tr>`).join("")}</tbody></table>`;
+  $("#bt-b12").innerHTML = k12.length ? bang(k12, k => "Tháng " + kyThang(k), cs => c12[cs].f) : "";
+  $("#bt-h5").textContent = k7.length ? `${kyNgay(k7[0])} – ${kyNgay(k7[k7.length - 1])}/${k7[k7.length - 1].slice(0, 4)}` : "chưa có dữ liệu";
+  $("#bt-c7-khoi").style.display = k7.length ? "" : "none"; $("#bt-c7-trong").style.display = k7.length ? "none" : "";
+  $("#bt-b7").innerHTML = k7.length ? bang(k7, k => "Ngày " + kyNgay(k) + "/" + k.slice(0, 4), cs => c7[cs].n) : "";
+  BT.ghiChu = [
+    "Dữ liệu hiện trạng: ảnh Landsat 8/9 Collection 2 Level-2 (Google Earth Engine), lọc mây theo QA_PIXEL, ghép trung vị theo tháng, lấy mẫu về lưới 500 m (26.320 ô, UTM 48N) và lưu trong CSDL PostgreSQL/PostGIS.",
+    "LST = ST_B10 × 0,00341802 + 149 − 273,15 (°C); NDVI = (NIR − Red)/(NIR + Red); TVDI tính theo không gian LST–NDVI với cạnh khô/ướt xác định từng tháng.",
+    "Giá trị phường/xã là trung bình các ô lưới 500 m nằm trong ranh giới 167 phường/xã (sau sắp xếp đơn vị hành chính 2025). Ngưỡng cảnh báo trong bản tin: " + CS3.map(cs => NGUONG_BT[cs].nhan).join("; ") + ".",
+    "Dự báo tháng: mô hình AI (LR, Bayesian Ridge, RF, XGBoost, LSTM, GRU, Transformer) học từ chuỗi Landsat 2015 – nay; chọn mô hình có RMSE nhỏ nhất trên tập kiểm tra; dải P10 – P90 thể hiện phân tán không gian.",
+    "Dự báo ngày (7 ngày) hiện là GIẢ LẬP: nội suy dự báo tháng về từng ngày và cộng dao động thời tiết ngày, vì Landsat chụp 16 ngày/lần. Hệ thống đã thiết kế sẵn để thay bằng mô hình ngày khi tích hợp vệ tinh có tần suất ngày (MODIS, VIIRS…)."];
+  $("#bt-gc").innerHTML = BT.ghiChu.map(x => `<p style="margin:0 0 6px">${esc(x)}</p>`).join("");
+}
+
+// ---- bản đồ phường trên canvas (dùng cho bản tin, in và Word) ----
+function veBdCanvas(cv, giaTri, cs, tieuDe, phuDe) {
+  const W = 520, H = 620, dpr = 2; cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+  let w = 180, s = 90, e = -180, n = -90;
+  Object.values(S.phIdx).forEach(p => { w = Math.min(w, p.bbox[0][0]); s = Math.min(s, p.bbox[0][1]); e = Math.max(e, p.bbox[1][0]); n = Math.max(n, p.bbox[1][1]); });
+  const tren = 64, duoi = 84, le = 14, kx = Math.cos((s + n) / 2 * Math.PI / 180);
+  const sc = Math.min((W - 2 * le) / ((e - w) * kx), (H - tren - duoi) / (n - s));
+  const ox = (W - (e - w) * kx * sc) / 2, oy = tren + ((H - tren - duoi) - (n - s) * sc) / 2;
+  const P = c => [ox + (c[0] - w) * kx * sc, oy + (n - c[1]) * sc];
+  const vals = Object.values(giaTri).filter(v => v != null && isFinite(v)).sort((a, b) => a - b);
+  const c = csInfo(cs); let vmin = c.vmin, vmax = c.vmax;
+  if (vals.length > 3) { vmin = vals[Math.floor(0.02 * (vals.length - 1))]; vmax = vals[Math.ceil(0.98 * (vals.length - 1))]; if (vmax - vmin < 1e-6) { vmin -= .5; vmax += .5; } }
+  const nut = c.mau.map(hex2rgb);
+  for (const f of S.phuongHinh.features) {
+    const v = giaTri[f.id], ds = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+    g.beginPath();
+    ds.forEach(poly => poly.forEach(ring => ring.forEach((pt, i) => { const [x, y] = P(pt); i ? g.lineTo(x, y) : g.moveTo(x, y); })));
+    g.fillStyle = v == null ? "#d9dfdb" : rgbCss(mauTai(v, vmin, vmax, nut)); g.fill("evenodd");
+    g.strokeStyle = "rgba(255,255,255,.85)"; g.lineWidth = 0.5; g.stroke();
+  }
+  g.fillStyle = "#1f2d2a"; g.textAlign = "center"; g.font = "700 21px 'Be Vietnam Pro', sans-serif"; g.fillText(tieuDe, W / 2, 26);
+  g.font = "500 16px 'Be Vietnam Pro', sans-serif"; g.fillStyle = "#4b5a55"; g.fillText(phuDe, W / 2, 49);
+  // la bàn
+  const lx = W - 34, ly = tren + 20;
+  g.beginPath(); g.moveTo(lx, ly - 16); g.lineTo(lx + 8, ly + 8); g.lineTo(lx, ly + 3); g.lineTo(lx - 8, ly + 8); g.closePath();
+  g.fillStyle = "#1f2d2a"; g.fill(); g.font = "700 15px sans-serif"; g.fillText("B", lx, ly - 21);
+  // thang màu
+  const bx = 40, by = H - 56, bw = W - 80, bh = 14, gr = g.createLinearGradient(bx, 0, bx + bw, 0);
+  c.mau.forEach((m, i) => gr.addColorStop(i / (c.mau.length - 1), m));
+  g.fillStyle = gr; g.fillRect(bx, by, bw, bh); g.strokeStyle = "#7c8a85"; g.lineWidth = .6; g.strokeRect(bx, by, bw, bh);
+  g.fillStyle = "#33413d"; g.font = "500 15px 'Be Vietnam Pro', sans-serif";
+  [0, .25, .5, .75, 1].forEach(t => { const x = bx + t * bw; g.fillRect(x - .3, by + bh, .6, 4); g.textAlign = t === 0 ? "left" : t === 1 ? "right" : "center";
+    g.fillText(soVN(vmin + t * (vmax - vmin), cs), x, by + bh + 20); });
+  g.textAlign = "left"; g.fillText(cs + (cs === "LST" ? " (°C)" : ""), bx, by - 8);
+  g.textAlign = "right"; g.fillStyle = "#4b5a55"; g.fillText("không có dữ liệu", bx + bw, by - 8);
+  const rg = g.measureText("không có dữ liệu").width; g.fillStyle = "#d9dfdb"; g.fillRect(bx + bw - rg - 20, by - 19, 13, 11);
+}
+
+// ---- in / PDF ----
+$("#bt-in").onclick = () => { document.body.classList.add("in-ban-tin"); setTimeout(() => { window.print(); }, 50); };
+window.addEventListener("afterprint", () => document.body.classList.remove("in-ban-tin"));
+
+// ---- CSV ----
+$("#bt-csv").onclick = () => {
+  const d = BT.du; if (!d) return;
+  const dong = ["phuong_xa,LST,NDVI,TVDI," + CS3.map(cs => `${cs}_du_bao_${d.db[cs] ? d.db[cs].bo.tu_ky.slice(0, 7) : ""}`).join(",") + ",ky_hien_trang"];
+  d.rows.slice().sort((a, b) => a.ten.localeCompare(b.ten, "vi")).forEach(r => dong.push([`"${r.ten}"`, r.LST ?? "", r.NDVI ?? "", r.TVDI ?? "",
+    ...CS3.map(cs => d.phDB[cs] && d.phDB[cs][r.id] != null ? d.phDB[cs][r.id] : ""), d.ky.slice(0, 7)].join(",")));
+  taiVe(new Blob(["﻿" + dong.join("\n")], { type:"text/csv" }), `ban_tin_${d.ky.slice(0, 7)}.csv`);
+};
+
+// ---- Word (.docx) ----
+async function napDocx() {
+  if (window.docx) return window.docx;
+  await new Promise((ok, loi) => { const sc = document.createElement("script"); sc.src = "https://unpkg.com/docx@8.5.0/build/index.umd.js";
+    sc.onload = ok; sc.onerror = () => loi(new Error("Không tải được thư viện tạo Word (cần Internet).")); document.head.appendChild(sc); });
+  return window.docx;
+}
+const anhTu = url => { const b = atob(url.split(",")[1]), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
+$("#bt-word").onclick = async () => {
+  const d = BT.du; if (!d) return;
+  const nut = $("#bt-word"); nut.disabled = true; nut.textContent = "Đang tạo Word…";
+  try {
+    const D = await napDocx();
+    const { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, BorderStyle, ShadingType } = D;
+    const F = "Times New Roman";
+    const p = (t, o = {}) => new Paragraph({ spacing:{ after:80, line:300 }, alignment:o.can || AlignmentType.JUSTIFIED, ...o.p,
+      children:[new TextRun({ text:t, font:F, size:o.size || 24, bold:o.bold, italics:o.it, color:o.mau })] });
+    const h = t => new Paragraph({ heading:HeadingLevel.HEADING_2, spacing:{ before:220, after:100 }, children:[new TextRun({ text:t, font:F, size:26, bold:true, color:"256657" })] });
+    const anh = (cv, wpx) => { const r = cv.height / cv.width; return new ImageRun({ data:anhTu(cv.toDataURL("image/png")), transformation:{ width:wpx, height:Math.round(wpx * r) } }); };
+    const vien = { style:BorderStyle.SINGLE, size:4, color:"BFC9C4" };
+    const o = (t, o2 = {}) => new TableCell({ borders:{ top:vien, bottom:vien, left:vien, right:vien },
+      shading:o2.dau ? { type:ShadingType.CLEAR, fill:"E3F0EA", color:"auto" } : undefined, margins:{ top:40, bottom:40, left:80, right:80 },
+      children:[new Paragraph({ alignment:o2.trai ? AlignmentType.LEFT : AlignmentType.CENTER, children:[new TextRun({ text:String(t), font:F, size:20, bold:o2.dau })] })] });
+    const bangW = (dau, dong, trai = [0]) => new Table({ width:{ size:100, type:WidthType.PERCENTAGE },
+      rows:[new TableRow({ tableHeader:true, children:dau.map(t => o(t, { dau:true })) }), ...dong.map(r => new TableRow({ children:r.map((t, i) => o(t, { trai:trai.includes(i) })) }))] });
+    const hangAnh = ids => new Paragraph({ alignment:AlignmentType.CENTER, spacing:{ after:60 }, children:ids.flatMap((id, i) => [anh($(id), 200), new TextRun({ text:i < ids.length - 1 ? " " : "", font:F })]) });
+    const chuThich = t => p(t, { can:AlignmentType.CENTER, it:true, size:21 });
+    const ky = kyThang(d.ky), k12 = d.c12.LST.kyF, k7 = d.c7.LST.ky;
+    const con = [
+      p("BẢN TIN GIÁM SÁT & DỰ BÁO", { can:AlignmentType.CENTER, bold:true, size:24, mau:"2F7D6D" }),
+      p("NHIỆT ĐỘ BỀ MẶT – LỚP PHỦ THỰC VẬT – MỨC ĐỘ KHÔ HẠN TẠI TP. HỒ CHÍ MINH", { can:AlignmentType.CENTER, bold:true, size:30 }),
+      p($("#bt-meta").textContent, { can:AlignmentType.CENTER, it:true, size:21 }),
+      h("1. Tóm tắt"), ...BT.tomTat.map(t => new Paragraph({ bullet:{ level:0 }, spacing:{ after:60, line:300 }, alignment:AlignmentType.JUSTIFIED, children:[new TextRun({ text:t, font:F, size:24 })] })),
+      bangW(["Chỉ tiêu", "Giá trị", "So với cùng kỳ năm trước"], BT.kpi.map(k => [k.t, k.v, k.d != null ? soVNd(k.d, k.cs) : "–"])),
+      h(`2. Bản đồ hiện trạng theo phường/xã – tháng ${ky}`), hangAnh(["#bt-bd-LST", "#bt-bd-NDVI", "#bt-bd-TVDI"]),
+      chuThich(`Hình 1. Bản đồ LST, NDVI, TVDI trung bình theo phường/xã, tháng ${ky}`),
+      h("3. Xếp hạng 10 phường/xã đáng chú ý"),
+      ...CS3.flatMap(cs => [p(`${cs} ${CHIEU_XH[cs] < 0 ? "cao nhất" : "thấp nhất"} (tháng ${ky})`, { bold:true, size:22 }),
+        bangW(["#", "Phường/xã", `${cs} hiện trạng`, ...(d.phDB[cs] ? [`${cs} dự báo ${kyThang(d.db[cs].bo.tu_ky)}`] : [])],
+          d.top[cs].map((r, i) => [i + 1, r.ten, soVN(r[cs], cs), ...(d.phDB[cs] ? [soVN(d.phDB[cs][r.id], cs)] : [])]), [1]), p("")]),
+    ];
+    if (k12.length) con.push(h(`4. Dự báo theo tháng bằng mô hình AI (${kyThang(k12[0])} – ${kyThang(k12[k12.length - 1])})`),
+      ...CS3.map(cs => new Paragraph({ alignment:AlignmentType.CENTER, children:[anh(d3(BT.bd["c12" + cs]), 430)] })),
+      chuThich("Hình 2. Hiện trạng 24 tháng gần nhất và dự báo AI theo tháng (trung bình toàn vùng, dải P10 – P90)"),
+      bangW(["Tháng", ...CS3.flatMap(cs => [`${cs} TB`, `${cs} P10 – P90`])], k12.map(k => [kyThang(k), ...CS3.flatMap(cs => { const r = d.c12[cs].f[k]; return r ? [soVN(r.tb, cs), `${soVN(r.p10, cs)} – ${soVN(r.p90, cs)}`] : ["–", "–"]; })])),
+      p(""), ...(Object.keys(d.phDB).length ? [hangAnh(["#bt-db-LST", "#bt-db-NDVI", "#bt-db-TVDI"]), chuThich(`Hình 3. Bản đồ dự báo tháng ${kyThang(k12[0])} theo phường/xã`)] : []));
+    if (k7.length) con.push(h(`5. Dự báo 7 ngày tới (GIẢ LẬP) – ${kyNgay(k7[0])} đến ${kyNgay(k7[k7.length - 1])}/${k7[0].slice(0, 4)}`),
+      ...CS3.map(cs => new Paragraph({ alignment:AlignmentType.CENTER, children:[anh(d3(BT.bd["c7" + cs]), 400)] })),
+      chuThich("Hình 4. Dự báo 7 ngày (giả lập) – trung bình toàn vùng, dải P10 – P90"),
+      bangW(["Ngày", ...CS3.flatMap(cs => [`${cs} TB`, `${cs} P10 – P90`])], k7.map(k => [kyNgay(k), ...CS3.flatMap(cs => { const r = d.c7[cs].n[k]; return r ? [soVN(r.tb, cs), `${soVN(r.p10, cs)} – ${soVN(r.p90, cs)}`] : ["–", "–"]; })])));
+    con.push(h("6. Ghi chú phương pháp"), ...BT.ghiChu.map(t => p(t, { size:22 })));
+    const doc = new Document({ creator:"He thong giam sat LST-NDVI-TVDI", title:"Ban tin giam sat " + ky,
+      sections:[{ properties:{ page:{ margin:{ top:1134, bottom:1134, left:1418, right:1134 } } }, children:con }] });
+    taiVe(await Packer.toBlob(doc), `Ban_tin_LST_NDVI_TVDI_${d.ky.slice(0, 7)}.docx`);
+  } catch (e) { alert("Lỗi tạo Word: " + e.message); console.error(e); }
+  nut.disabled = false; nut.textContent = "Xuất báo cáo Word (.docx)";
+};
+const d3 = ch => ch.canvas;      // biểu đồ Chart.js → canvas (đã có nền trắng)
+
+</script>
+<script src="tinh.js"></script>
+<script>
+// ================= KHỞI ĐỘNG =================
+(async function khoiDong() {
+  try {
+    S.toi = await api("/api/toi");
+    LA_ADMIN = S.toi.vai_tro === "admin";
+    document.body.classList.toggle("la-admin", LA_ADMIN);
+    $("#nguoi-ten").textContent = S.toi.ten_hien; $("#nguoi-vt").textContent = S.toi.ten_vai_tro;
+    $("#nguoi-chu").textContent = (S.toi.ten_hien || "?").trim().split(/\s+/).pop()[0].toUpperCase();
+    taoBanDo();
+    const [tq, hinh] = await Promise.all([api("/api/tong_quan"), api("/api/phuong/hinh")]);
+    S.tq = tq; S.phuongHinh = hinh;
+    hinh.features.forEach(f => S.phIdx[f.id] = { ...f.properties, bbox:khungBao(f.geometry) });
+    if (!hinh.features.length) $("#ds-than").innerHTML = `<div class="ghi-chu" style="padding:14px">Chưa có ranh giới phường/xã trong CSDL. Khởi động lại trang web (py web\\app.py) để tự nạp.</div>`;
+    const capGEE = g => { $("#trang-thai-gee span").textContent = "GEE: " + g.trang_thai; $("#trang-thai-gee").classList.toggle("ok", g.bat); };
+    capGEE(S.tq.gee);
+    if (LA_ADMIN) {
+      $("#f-mo-hinh").innerHTML = `<option value="">Chọn mô hình…</option>` +
+        S.tq.mo_hinh_dm.map(m => `<option value="${m.ma}">${m.ma} – ${esc(m.ten)}</option>`).join("");
+      capNhatFormTL();
+      setTimeout(() => capNhatTD().catch(() => {}), 1500);   // theo dõi nền: lịch tự động có thể chạy khi đang ở tab khác
+      setInterval(async () => { if (!S.tq.gee.bat) { const t = await api("/api/tong_quan"); S.tq.gee = t.gee; capGEE(t.gee); } }, 5000);
+    }
+    await banDoSan;
+    themLopNen();
+    const v = S.tq.vung[0];
+    if (v) { mapGL.getSource("vung").setData(v.geojson); }
+    if (hinh.features.length) {
+      let w = 180, s = 90, e = -180, n = -90;
+      Object.values(S.phIdx).forEach(p => { w = Math.min(w, p.bbox[0][0]); s = Math.min(s, p.bbox[0][1]); e = Math.max(e, p.bbox[1][0]); n = Math.max(n, p.bbox[1][1]); });
+      mapGL.fitBounds([[w, s], [e, n]], { padding:30, duration:0 });
+    }
+    S.moHinhRows = await api("/api/mo_hinh");
+    S.moHinh = moHinhTotNhat(S.cs);
+    await chonBo();
+    api("/api/kho").then(k => { $("#dem-kho").textContent = k.length.toLocaleString("vi-VN"); }).catch(() => {});
+  } catch (e) { alert("Không kết nối được máy chủ: " + e.message); }
+})();
+</script>
+</body>
+</html>
